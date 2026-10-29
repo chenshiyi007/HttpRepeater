@@ -148,7 +148,7 @@ use Burp, ZAP, mitmproxy or other tools for interception, crawling, scanning and
 </p>
 
 <p align="center">
-  <img src="assets/screenshots/ai-injection-en.png" alt="AI drafting SQL injection payloads for an id parameter" width="900"><br>
+  <img src="assets/screenshots/ai-payload-en.gif" alt="AI drafting an injection payload for the id parameter, applied and replayed" width="1000"><br>
   <em>Injection testing → candidate payloads for the id parameter</em>
 </p>
 
@@ -301,7 +301,7 @@ payloads, or explanations. When a reply contains a complete raw request, **Apply
 replaces the editor content with it — HttpRepeater never sends anything on the AI's behalf.
 
 <p align="center">
-  <img src="assets/screenshots/ai-en.png" alt="AI assistant editing the current request" width="900">
+  <img src="assets/screenshots/ai-request-en.gif" alt="AI assistant turning the request into a JSON POST, applied to the editor and sent" width="1000">
 </p>
 
 The assistant talks to the LLM endpoint configured in Settings (OpenAI-compatible **Chat

@@ -134,7 +134,7 @@ HttpRepeater **不是** Burp Suite 的替代品。它只覆盖 Repeater 这一�
 </p>
 
 <p align="center">
-  <img src="assets/screenshots/ai-injection-zh.png" alt="用 AI 为 id 参数构造 SQL 注入 payload" width="900"><br>
+  <img src="assets/screenshots/ai-payload-zh.gif" alt="用 AI 为 id 参数构造注入 payload，应用后重放" width="1000"><br>
   <em>注入测试 → 针对 id 参数的候选 payload</em>
 </p>
 
@@ -275,7 +275,7 @@ curl 支持 `-X/--request`、`-H/--header`、`-d/--data*`、`--json`、`-u/--use
 原始报文时，会出现 **应用到请求** 按钮，点击即覆盖编辑器内容——工具绝不会替你发包。
 
 <p align="center">
-  <img src="assets/screenshots/ai-zh.png" alt="AI 助手修改当前请求" width="900">
+  <img src="assets/screenshots/ai-request-zh.gif" alt="AI 助手把请求改成 JSON POST，应用回编辑器并发送" width="1000">
 </p>
 
 助手调用的是设置页里配置的 LLM 服务（OpenAI 风格的 **Chat Completions** 或 **Responses** API）。
