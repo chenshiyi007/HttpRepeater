@@ -227,3 +227,62 @@ func TestImportFetchTemplateURL(t *testing.T) {
 		t.Errorf("expected template warning, got %v", res.Warnings)
 	}
 }
+
+// Chrome / Edge 在 Windows 上「Copy as cURL (cmd)」：参数用 ^"..."^" 包裹，
+// ^ 续行，内部引号为 ^\^"，特殊字符带 ^ 转义。
+func TestImportCurlWindowsCmdChromeStyle(t *testing.T) {
+	src := `curl --url ^"https://example.com/api?x=1^&y=2^" ^
+  -X ^"POST^" ^
+  -H ^"accept: application/json^" ^
+  -H ^"content-type: application/json^" ^
+  --data-raw ^"^{^\^"id^\^":1,^\^"name^\^":^\^"test^\^"^}"`
+	res, err := ImportRequest(src)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if res.Target.Scheme != "https" || res.Target.Host != "example.com" {
+		t.Errorf("target = %+v", res.Target)
+	}
+	want := "POST /api?x=1&y=2 HTTP/1.1\n" +
+		"Host: example.com\n" +
+		"accept: application/json\n" +
+		"content-type: application/json\n" +
+		"Content-Length: 22\n\n" +
+		`{"id":1,"name":"test"}`
+	if res.RequestText != want {
+		t.Errorf("requestText = %q, want %q", res.RequestText, want)
+	}
+}
+
+// 旧版 Chrome 的 cmd 格式：普通双引号 + ^ 续行
+func TestImportCurlWindowsCmdPlainQuotes(t *testing.T) {
+	src := `curl.exe "https://example.com/p" ^
+  -H "Content-Type: application/json" ^
+  --data-raw "{\"a\":1,\"b\":2}"`
+	res, err := ImportRequest(src)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	want := "POST /p HTTP/1.1\n" +
+		"Host: example.com\n" +
+		"Content-Type: application/json\n" +
+		"Content-Length: 13\n\n" +
+		`{"a":1,"b":2}`
+	if res.RequestText != want {
+		t.Errorf("requestText = %q, want %q", res.RequestText, want)
+	}
+}
+
+func TestImportCurlWindowsCmdSpecialChars(t *testing.T) {
+	src := `curl --url ^"http://127.0.0.1:8080/a?q=^$^(x^)^" --data-raw ^"a^&b^|c^<d^>e^^f^"`
+	res, err := ImportRequest(src)
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if !strings.HasPrefix(res.RequestText, "POST /a?q=$(x) HTTP/1.1\n") {
+		t.Errorf("path mismatch: %q", res.RequestText)
+	}
+	if !strings.HasSuffix(res.RequestText, "\n\na&b|c<d>e^f") {
+		t.Errorf("body mismatch: %q", res.RequestText)
+	}
+}

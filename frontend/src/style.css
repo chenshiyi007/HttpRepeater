@@ -31,6 +31,9 @@ body[data-theme='dark'] {
   --accent-border: rgba(99, 226, 183, 0.35);
   --error: #e88080;
   --dirty: #f2c97d;
+  --search-hit: rgba(242, 201, 125, 0.32);
+  --search-hit-active: #f2c97d;
+  --search-hit-active-text: #101014;
   --hover-bg: rgba(255, 255, 255, 0.1);
   --hover-bg-soft: rgba(255, 255, 255, 0.08);
   --scrollbar-thumb: rgba(255, 255, 255, 0.15);
@@ -56,6 +59,9 @@ body[data-theme='light'] {
   --accent-border: rgba(24, 160, 88, 0.45);
   --error: #d03050;
   --dirty: #c98500;
+  --search-hit: rgba(201, 133, 0, 0.2);
+  --search-hit-active: #f0b429;
+  --search-hit-active-text: #101014;
   --hover-bg: rgba(0, 0, 0, 0.06);
   --hover-bg-soft: rgba(0, 0, 0, 0.05);
   --scrollbar-thumb: rgba(0, 0, 0, 0.18);

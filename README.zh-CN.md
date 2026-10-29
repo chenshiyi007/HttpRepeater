@@ -27,10 +27,13 @@ Burp Suite 的 Repeater 很好用，但它属于一套大型抓包工具。很�
 HttpRepeater 就是这个小窗口。它只专注一件事：**Repeater 循环**。
 
 - **原始报文保真**：请求直接写入 TCP/TLS socket，保留 Header 顺序、大小写、重复头和非规范 body。
-- **快速输入**：支持粘贴原始报文、裸 URL，或直接从浏览器 DevTools 复制的 `curl` / `fetch` 代码。
+- **快速输入**：支持粘贴原始报文、裸 URL，或直接从浏览器 DevTools 复制的 `curl` / `fetch` 代码，
+  也支持 Windows 的 **Copy as cURL (cmd)** 格式。
 - **按标签页走代理链**：一个开关就能让当前标签走 Burp、Yakit、mitmproxy 或 Clash。默认代理地址是
-  `http://127.0.0.1:7890`，每个标签可以单独修改。
+  `http://127.0.0.1:7890`，可以按标签修改，也可以在设置里改全局默认值。
 - **按标签页记录历史**：每次发送都会记录（失败也记录），可以回到任意快照改完重发。
+- **可选 AI 辅助**：内置助手对接你自己的 LLM，可以帮你改请求、写 payload；结果由你确认后应用，
+  绝不自动发包。
 - **体积小**：单个原生桌面应用，不需要 Java 运行时。
 
 ## 功能特性
@@ -39,19 +42,35 @@ HttpRepeater 就是这个小窗口。它只专注一件事：**Repeater 循环**
 - 多标签工作区。每个标签独立保存请求、目标、代理设置和历史。
 - 支持 HTTP / HTTPS；响应自动解码 `gzip`、`deflate`、`br`，提供 **Pretty**（格式化 JSON、状态行和头）
   和 **Raw** 两种视图。
+- 响应搜索：大小写不敏感的关键字搜索，所有命中都会高亮，显示 `n/m` 计数，可用上下按钮或
+  `Enter` / `Shift+Enter` 在命中之间跳转；当前命中用更醒目的颜色并自动滚动到可视区域。
+- 发送可取消：请求进行中 **发送** 按钮会变成 **取消**，点击后立即关闭连接，这次尝试会以「已取消」
+  记入历史。
 - 请求历史：`‹ n/N ›` 前后切换，点数字可展开列表（状态码 + 耗时）。加载快照会把当时的请求原文放回
   编辑器；如果有未发送的修改，会先弹确认。
 - 每个标签独立的下游 HTTP 代理，支持 `user:pass` Basic 认证：
   - `http://` 目标使用绝对 URL 请求行；
   - `https://` 目标自动走 `CONNECT` 隧道。
-- `curl` / `fetch` 导入，支持 Chrome DevTools 的 **Copy as cURL** / **Copy as fetch**。
-  粘贴后自动转换；也可以点 **导入** 读取剪贴板。
+- `curl` / `fetch` 导入，支持 Chrome DevTools 的 **Copy as cURL** / **Copy as fetch**，bash 和
+  Windows `cmd` 两种格式都可以（`^` 续行、`^"` 包裹、`curl.exe`）。粘贴后自动转换；
+  也可以点 **导入** 读取剪贴板。
 - 内置请求模板：GET、POST 表单、POST JSON、multipart 文件上传、Host 留空、清空。
+- 请求编辑器右键菜单：
+  - **复制 URL**：拼出完整的 `协议://Host[:端口]/路径?查询`，GET 参数一并带上；
+  - **复制为 curl**：可直接运行的命令，macOS/Linux 用 POSIX 单引号，Windows 用 `cmd` 转义
+    （`^"..."^"`、`^` 续行）；
+  - **转换请求方法**：仿 Burp 的 GET↔POST 互转，URL 查询参数与表单 body 互相搬移。
+- **AI 助手**（自带 LLM）：基于当前请求对话，让 AI 改请求或写 payload，一键把生成的原始报文
+  覆盖回编辑器——绝不会自动发包。基于官方 **OpenAI Go SDK v3**，兼容 OpenAI 风格的
+  **Chat Completions** 与 **Responses** 两种 API，Base URL、API Key、模型、思考强度、系统提示词
+  均可配置。
 - **Host 跟随** 与 **自动 CL** 开关：
   - Host 跟随会把 `Host` 头改写为目标地址（默认开）；
   - 自动 CL 会在有 body 时重算 `Content-Length`（默认开）。
   两个都关掉，就能测试 Host 校验、长度处理之类的边界场景。
-- 深色 / 浅色主题，中文 / 英文界面，选择存 `localStorage`。
+- 设置页（标题栏齿轮）：界面语言、主题、默认代理和 LLM 配置，持久化到
+  `~/.httpRepeater/setting.json`（权限 `0600`）。
+- 深色 / 浅色主题，中文 / 英文界面，标题栏快捷按钮或设置页都可以切换。
 - 键盘优先：发送、新建标签、关闭标签、编辑器内搜索。
 
 ## 与 Burp Suite Repeater 对比
@@ -65,6 +84,8 @@ HttpRepeater 就是这个小窗口。它只专注一件事：**Repeater 循环**
 | gzip / deflate / br 响应解码 | 支持 | 支持 |
 | HTTP/HTTPS 代理链 | 支持（走 Burp 代理） | 支持，按标签配置下游代理 |
 | curl / fetch 导入 | 非内置 | 内置 |
+| GET↔POST 请求方法转换 | 支持 | 支持 |
+| AI 辅助改请求 | 无 | 支持（自带 LLM） |
 | 抓包代理、站点地图、扫描器、Intruder | Burp Suite 的一部分 | 不包含 |
 | 插件、宏、认证/会话处理 | 支持 | 不包含 |
 | 会话持久化 | 支持 | 仅内存 |
@@ -79,6 +100,8 @@ HttpRepeater **不是** Burp Suite 的替代品。它只覆盖 Repeater 这一�
   字段，再次发送。上一次的结果留在历史里。
 - **把 curl 变成可编辑报文。** 粘贴 `curl 'https://api.example.com/v1/login' ...` 或浏览器里的
   `fetch(...)` 代码，HttpRepeater 会自动填好目标并生成原始请求。
+- **让 AI 帮你写 payload。** 把需求告诉内置助手，检查它生成的原始报文，一键应用回编辑器，
+  再由你自己发送。
 - **通过代理链测试。** 打开当前标签的代理，指向 Burp、Yakit、mitmproxy 或 Clash。HTTP 请求走
   绝对 URL，HTTPS 请求走 CONNECT 隧道。
 - **测试 Header 处理。** 关闭 **Host 跟随** 可以按原文发送 `Host`；关闭 **自动 CL** 可以自己控制
@@ -94,7 +117,7 @@ HttpRepeater **不是** Burp Suite 的替代品。它只覆盖 Repeater 这一�
 
 | 依赖 | 版本 |
 | --- | --- |
-| Go | 1.25+ |
+| Go | 1.26+ |
 | Node.js | 20.19+（或 22.12+） |
 | Wails CLI | v2.17+ |
 | 平台工具链 | macOS：Xcode Command Line Tools · Windows：WebView2 · Linux：GTK3 + WebKit2GTK |
@@ -135,6 +158,7 @@ npm run dev
 
 编辑器直接编辑原始 HTTP：请求行、Header、空行、body。常用结构可以从 **模板** 里选，或者用
 **导入** 从剪贴板读取 `curl` / `fetch` 片段。准备好后点 **发送**（或 ⌘Enter / Ctrl+Enter）。
+请求进行中，发送按钮会变成 **取消**；点击后立即关闭 socket，这次取消也会留在历史里。
 
 <p align="center">
   <img src="assets/screenshots/templates-zh.png" alt="请求模板与原始报文编辑器" width="900">
@@ -144,6 +168,14 @@ npm run dev
 
 响应面板显示状态行、原始响应头和解码后的 body。右上角可以切换 **Pretty** / **Raw**；JSON 在
 Pretty 模式下会缩进。状态区显示状态行、耗时和传输字节数。
+
+用 **搜索响应** 输入框做大小写不敏感的关键字搜索：所有命中都会高亮，右侧显示当前位置（`n/m`），
+上下按钮或搜索框里的 `Enter` / `Shift+Enter` 可以在命中之间跳转，当前命中的颜色更醒目并会自动
+滚动到可视区域。
+
+<p align="center">
+  <img src="assets/screenshots/response-search-zh.png" alt="响应关键字搜索与高亮" width="900">
+</p>
 
 ### 4. 浏览历史
 
@@ -178,7 +210,8 @@ HTTPS 目标会自动使用 `CONNECT` 隧道。设置在下一次发送时生效
 
 最顺手的方式是从浏览器里直接复制：打开 DevTools → **Network**，右键请求，选 **Copy as cURL**
 或 **Copy as fetch**，回到 HttpRepeater 直接粘贴。工具会自动识别格式、转换成可编辑的原始报文，
-并把目标栏填好。
+并把目标栏填好。Windows 上的 **Copy as cURL (cmd)** 同样支持：`^` 续行、`^"` 参数包裹和
+`curl.exe` 都能直接解析。
 
 <p align="center">
   <img src="assets/screenshots/web-tools.png" alt="在 Chrome DevTools 中复制为 cURL / fetch" width="620">
@@ -191,10 +224,50 @@ curl 支持 `-X/--request`、`-H/--header`、`-d/--data*`、`--json`、`-u/--use
 （multipart / 文件上传）暂不支持，可以用 `-d` 提供 body 或手工构造。`fetch()` 会导入 URL、method、
 字面量 headers 和 body；浏览器自动附加的 Cookie / Authorization 等头不会被导入，并会给出提示。
 
-### 8. 主题与语言
+### 8. 编辑器右键菜单
 
-右上角的太阳/月亮按钮切换深浅色；`EN` / `中` 按钮切换界面语言。两个选择都会保存在本地，下次启动
-自动恢复。
+在请求编辑器里任意位置右键：
+
+- **复制 URL**：带协议、Host、端口、路径和查询串的完整 URL（GET 参数一并带上，POST body 不动）；
+- **复制为 curl**：还原当前请求的 curl 命令。Windows 上按 `cmd` 规则转义（`^"..."^"`、`^` 续行），
+  macOS/Linux 用 POSIX 单引号；
+- **转换为 POST / 转换为 GET**：仿 Burp 的方法互转。GET 的查询参数会搬进
+  `application/x-www-form-urlencoded` body（自动补 `Content-Type` 和 `Content-Length`），
+  表单 body 也会搬回 URL 查询串；非表单 body（如 JSON）原样保留。
+
+<p align="center">
+  <img src="assets/screenshots/context-menu-zh.png" alt="请求编辑器右键菜单" width="900">
+</p>
+
+### 9. AI 助手
+
+点 **导入** 旁边的 **AI** 打开对话页。当前编辑器里的请求会随每条消息一起发给模型，可以直接
+说"把查询参数移到 JSON body，改成 POST"，也可以让它写 payload 或解释报文。回复里包含完整
+原始报文时，会出现 **应用到请求** 按钮，点击即覆盖编辑器内容——工具绝不会替你发包。
+
+<p align="center">
+  <img src="assets/screenshots/ai-zh.png" alt="AI 助手修改当前请求" width="900">
+</p>
+
+助手调用的是设置页里配置的 LLM 服务（OpenAI 风格的 **Chat Completions** 或 **Responses** API）。
+对话记录只在本次运行期间保存在内存里。用 **Ctrl/⌘+Enter** 发送——Enter 只换行，输入法选词不会
+误发；请求进行中按钮会变成 **停止**，可以中断这次 LLM 调用。拖动对话框右下角可以调整大小。
+
+### 10. 设置
+
+标题栏的齿轮按钮打开设置页：
+
+- 界面语言与主题；
+- 默认代理地址：新建标签和"恢复默认"使用；
+- LLM 配置：Base URL、API Key、模型、API 类型（Chat Completions / Responses）、思考强度，
+  以及指导模型输出原始 HTTP 的系统提示词。
+
+所有配置保存在 `~/.httpRepeater/setting.json`，文件权限 `0600`，不会离开你的机器；API Key 只
+用于访问你配置的服务。主题和语言还会同步写一份到 `localStorage`，保证启动第一帧就是你上次的选择。
+
+<p align="center">
+  <img src="assets/screenshots/settings-zh.png" alt="设置页" width="900">
+</p>
 
 ## 快捷键
 
@@ -212,8 +285,11 @@ curl 支持 `-X/--request`、`-H/--header`、`-d/--data*`、`--json`、`-u/--use
 - **响应解码。** 按 `Content-Length`、`Transfer-Encoding: chunked` 或连接关闭读取 body，再按逆序
   解码 `gzip`、`deflate`、`br`。
 - **上限。** 请求 10 MB，响应头 1 MB，响应体 64 MB。
-- **状态。** 标签、历史、代理设置和请求内容都只在内存中；只有主题和语言偏好会写入
-  `localStorage`。
+- **LLM 调用。** Go 后端使用官方 OpenAI Go SDK v3（`github.com/openai/openai-go/v3`），按配置的
+  Base URL 和 API Key 请求，并按设置选择 Chat Completions 或 Responses。每条消息都会附上当前请求
+  作为上下文；只有你点 **应用到请求** 时才会把回复写进编辑器。
+- **状态。** 标签、历史、代理设置和请求内容都只在内存中；语言、主题、默认代理和 LLM 配置持久化到
+  `~/.httpRepeater/setting.json`，主题和语言另在 `localStorage` 存一份，避免启动闪烁。
 
 ## 范围与限制
 
@@ -221,9 +297,10 @@ HttpRepeater 有意只做到 Repeater 这一层，不包含：
 
 - 抓包代理、站点地图、爬虫、扫描器或 Intruder；
 - 持久化项目或请求收藏；
-- LLM 辅助、脚本 Hook、Nuclei 模板或报告导出；
+- 脚本 Hook、Nuclei 模板或报告导出；
+- AI 对话历史持久化（对话只在本次运行期间保留）；
 - 自动跟随重定向、Cookie Jar、认证/会话处理；
-- HTTP/2、响应内搜索或 Hex 视图。
+- HTTP/2 或 Hex 视图。
 
 需要这些能力时，请把 HttpRepeater 和 Burp Suite、ZAP、mitmproxy、Yakit 等工具配合使用。
 
@@ -231,6 +308,8 @@ HttpRepeater 有意只做到 Repeater 这一层，不包含：
 
 - 为了便于测试自签名证书的目标，TLS 证书校验当前是**关闭**的。请勿在未理解这一点的情况下用于敏感的生产流量。
 - 代理认证信息只保存在内存中，并且只会发给配置的代理。
+- LLM 的 API Key 保存在本机 `~/.httpRepeater/setting.json`（权限 `0600`）。使用 AI 助手时，
+  当前请求和你的消息会发送到你配置的 LLM 服务。
 - 请求会按你编辑的内容发送（启用的 Host 跟随 / 自动 CL 会按上文说明改写对应头），请对自己发出的内容负责。
 
 **请只在你拥有或已获得明确授权的系统上使用本工具。**
@@ -280,7 +359,7 @@ macOS 通用包用 `PLATFORM=darwin/universal`；Linux 包需要在 Linux（或 
 | 路径 | 内容 |
 | --- | --- |
 | `main.go`、`app.go` | Wails 应用入口 |
-| `internal/repeater/` | 请求解析、原始 socket 发送、代理、响应解码、i18n |
+| `internal/repeater/` | 请求解析、原始 socket 发送、代理、响应解码、curl/URL/方法转换、设置与 LLM、i18n |
 | `frontend/src/` | Vue 3 界面、组件、Pinia store、编辑器与 i18n 文案 |
 | `build/` | 应用图标与各平台打包资源 |
 | `assets/screenshots/` | README 使用的截图 |
@@ -294,6 +373,7 @@ macOS 通用包用 `PLATFORM=darwin/universal`；Linux 包需要在 Linux（或 
 ## 致谢
 
 - [Wails](https://wails.io/) — 桌面应用外壳
+- [OpenAI Go SDK v3](https://github.com/openai/openai-go) — LLM 客户端
 - [Naive UI](https://www.naiveui.com/) — Vue 3 组件库
 - [CodeMirror](https://codemirror.net/) — 请求编辑器
 - [Ionicons](https://ionic.io/ionicons) — 界面图标（通过 `@vicons/ionicons5`）

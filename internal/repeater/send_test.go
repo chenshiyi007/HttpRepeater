@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"bytes"
 	"compress/gzip"
+	"context"
 	"io"
 	"net"
 	"net/http"
@@ -274,5 +275,58 @@ func TestSendConnectionRefused(t *testing.T) {
 	}
 	if res.Response.StatusCode != 0 {
 		t.Errorf("status should be 0 on transport error, got %d", res.Response.StatusCode)
+	}
+}
+
+func TestSendCancelled(t *testing.T) {
+	ln, err := net.Listen("tcp", "127.0.0.1:0")
+	if err != nil {
+		t.Fatalf("listen: %v", err)
+	}
+	defer ln.Close()
+
+	started := make(chan struct{})
+	go func() {
+		conn, err := ln.Accept()
+		if err != nil {
+			return
+		}
+		defer conn.Close()
+		buf := make([]byte, 1024)
+		_, _ = conn.Read(buf)
+		close(started)
+		_, _ = io.Copy(io.Discard, conn)
+	}()
+
+	port := ln.Addr().(*net.TCPAddr).Port
+	ctx, cancel := context.WithCancel(context.Background())
+	done := make(chan *SendResult, 1)
+	go func() {
+		done <- sendWithContext(ctx, SendRequest{
+			Raw:       "GET / HTTP/1.1\nHost: 127.0.0.1\n\n",
+			Scheme:    "http",
+			Host:      "127.0.0.1",
+			Port:      port,
+			TimeoutMs: 10000,
+		})
+	}()
+
+	select {
+	case <-started:
+	case <-time.After(3 * time.Second):
+		t.Fatal("request did not start")
+	}
+	cancel()
+
+	select {
+	case res := <-done:
+		if res.Response == nil {
+			t.Fatal("missing response")
+		}
+		if res.Response.Error != "已取消" {
+			t.Fatalf("error = %q, want 已取消", res.Response.Error)
+		}
+	case <-time.After(3 * time.Second):
+		t.Fatal("send was not cancelled")
 	}
 }

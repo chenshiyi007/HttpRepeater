@@ -1,12 +1,23 @@
 <script lang="ts" setup>
-import { computed, ref } from 'vue'
-import { NRadioButton, NRadioGroup } from 'naive-ui'
+import { computed, nextTick, ref, watch } from 'vue'
+import { NButton, NIcon, NInput, NRadioButton, NRadioGroup } from 'naive-ui'
+import { ChevronDownOutline, ChevronUpOutline, SearchOutline } from '@vicons/ionicons5'
 import { useTabsStore } from '../stores/tabs'
 import HistoryNav from './HistoryNav.vue'
 import { t } from '../i18n'
 
+const MAX_MATCHES = 2000
+
+interface MatchRange {
+  start: number
+  end: number
+}
+
 const store = useTabsStore()
 const mode = ref<'pretty' | 'raw'>('pretty')
+const searchQuery = ref('')
+const activeMatch = ref(0)
+const preRef = ref<HTMLElement | null>(null)
 
 const historyItem = computed(() => {
   const tab = store.activeTab
@@ -66,6 +77,112 @@ const rawText = computed(() => {
   const head = [r.statusLine, ...headerLines.value].join('\n')
   return `${head}\n\n${bodyText.value}`
 })
+
+const displayText = computed(() => (mode.value === 'pretty' ? prettyText.value : rawText.value))
+
+function escapeRegExp(value: string): string {
+  return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+}
+
+const matches = computed<MatchRange[]>(() => {
+  const query = searchQuery.value
+  const text = displayText.value
+  if (!query || !text) return []
+  const pattern = new RegExp(escapeRegExp(query), 'gi')
+  const ranges: MatchRange[] = []
+  for (const match of text.matchAll(pattern)) {
+    if (match.index === undefined) continue
+    ranges.push({ start: match.index, end: match.index + match[0].length })
+    if (ranges.length >= MAX_MATCHES) break
+  }
+  return ranges
+})
+
+const highlightedHtml = computed(() => {
+  const text = displayText.value
+  if (!text) return ''
+  const ranges = matches.value
+  if (!ranges.length) return escapeHtml(text)
+
+  const parts: string[] = []
+  let position = 0
+  ranges.forEach((range, index) => {
+    if (range.start > position) {
+      parts.push(escapeHtml(text.slice(position, range.start)))
+    }
+    const active = index === activeMatch.value ? ' class="active"' : ''
+    parts.push(
+      `<mark data-match="${index}"${active}>${escapeHtml(text.slice(range.start, range.end))}</mark>`,
+    )
+    position = range.end
+  })
+  if (position < text.length) {
+    parts.push(escapeHtml(text.slice(position)))
+  }
+  return parts.join('')
+})
+
+const matchLabel = computed(() => {
+  if (!searchQuery.value) return ''
+  const total = matches.value.length
+  if (!total) return t('response.noMatch')
+  const totalText = total >= MAX_MATCHES ? `${MAX_MATCHES}+` : String(total)
+  return `${activeMatch.value + 1}/${totalText}`
+})
+
+function scrollToMatch(smooth = false) {
+  void nextTick(() => {
+    const marks = preRef.value?.querySelectorAll('mark[data-match]')
+    const target = marks?.[activeMatch.value]
+    target?.scrollIntoView({
+      block: 'center',
+      inline: 'nearest',
+      behavior: smooth ? 'smooth' : 'auto',
+    })
+  })
+}
+
+function goMatch(delta: number) {
+  const total = matches.value.length
+  if (!total) return
+  activeMatch.value = (activeMatch.value + delta + total) % total
+  scrollToMatch(true)
+}
+
+function onSearchKeydown(event: KeyboardEvent) {
+  if (event.key === 'Enter') {
+    event.preventDefault()
+    goMatch(event.shiftKey ? -1 : 1)
+  } else if (event.key === 'Escape') {
+    searchQuery.value = ''
+  }
+}
+
+watch(
+  [searchQuery, () => mode.value, () => historyItem.value?.id],
+  () => {
+    activeMatch.value = 0
+    if (searchQuery.value && matches.value.length) {
+      scrollToMatch()
+    }
+  },
+)
+
+watch(
+  () => matches.value.length,
+  (total) => {
+    if (activeMatch.value >= total) activeMatch.value = 0
+  },
+)
 </script>
 
 <template>
@@ -87,13 +204,55 @@ const rawText = computed(() => {
       </template>
     </div>
 
+    <div v-if="response" class="search-bar">
+      <n-input
+        v-model:value="searchQuery"
+        size="tiny"
+        clearable
+        :placeholder="t('response.searchPlaceholder')"
+        class="search-input"
+        @keydown="onSearchKeydown"
+      >
+        <template #prefix>
+          <n-icon :component="SearchOutline" :size="13" />
+        </template>
+      </n-input>
+      <span v-if="searchQuery" class="match-count mono" :class="{ none: !matches.length }">
+        {{ matchLabel }}
+      </span>
+      <n-button
+        text
+        size="tiny"
+        :disabled="!matches.length"
+        :title="t('response.prevMatch')"
+        @click="goMatch(-1)"
+      >
+        <template #icon>
+          <n-icon :component="ChevronUpOutline" />
+        </template>
+      </n-button>
+      <n-button
+        text
+        size="tiny"
+        :disabled="!matches.length"
+        :title="t('response.nextMatch')"
+        @click="goMatch(1)"
+      >
+        <template #icon>
+          <n-icon :component="ChevronDownOutline" />
+        </template>
+      </n-button>
+    </div>
+
     <div class="panel-body">
       <div v-if="!response" class="panel-empty mono">{{ t('response.empty') }}</div>
       <pre
         v-else
+        ref="preRef"
         class="response-pre mono"
         :class="{ 'error-text': response.error }"
-      >{{ mode === 'pretty' ? prettyText : rawText }}</pre>
+        v-html="highlightedHtml"
+      ></pre>
     </div>
   </div>
 </template>
@@ -141,6 +300,32 @@ const rawText = computed(() => {
   color: var(--error);
 }
 
+.search-bar {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-bottom: 1px solid var(--border-soft);
+  background: var(--bar-bg);
+}
+
+.search-input {
+  width: 220px;
+  max-width: 45%;
+}
+
+.match-count {
+  min-width: 52px;
+  text-align: right;
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.match-count.none {
+  color: var(--error);
+}
+
 .panel-body {
   flex: 1;
   min-height: 0;
@@ -166,6 +351,19 @@ const rawText = computed(() => {
   color: var(--text-body);
   user-select: text;
   white-space: pre;
+}
+
+.response-pre :deep(mark) {
+  padding: 0;
+  border-radius: 2px;
+  background: var(--search-hit);
+  color: inherit;
+}
+
+.response-pre :deep(mark.active) {
+  background: var(--search-hit-active);
+  color: var(--search-hit-active-text);
+  box-shadow: 0 0 0 1px var(--search-hit-active);
 }
 
 .error-text {

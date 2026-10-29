@@ -2,6 +2,7 @@ package repeater
 
 import (
 	"bufio"
+	"context"
 	"encoding/base64"
 	"net"
 	"net/http"
@@ -64,13 +65,25 @@ func parseProxyURLLang(raw string, l lang) (*proxyConfig, error) {
 }
 
 // dialViaProxy 连接下游代理；HTTPS 目标再发 CONNECT 建立隧道，返回可直用的原始连接
-func dialViaProxy(cfg *proxyConfig, scheme, host string, port int, timeout time.Duration, l lang) (net.Conn, error) {
+func dialViaProxy(ctx context.Context, cfg *proxyConfig, scheme, host string, port int, timeout time.Duration, l lang) (net.Conn, error) {
 	dialer := &net.Dialer{Timeout: timeout}
-	conn, err := dialer.Dial("tcp", cfg.addr)
+	conn, err := dialer.DialContext(ctx, "tcp", cfg.addr)
 	if err != nil {
 		return nil, newLangErrorf(l, "连接代理失败（%s）: %w", "failed to connect to proxy (%s): %w", cfg.rawURL, err)
 	}
 	_ = conn.SetDeadline(time.Now().Add(timeout))
+
+	// CONNECT 交换期间也要能被取消
+	done := make(chan struct{})
+	go func() {
+		select {
+		case <-ctx.Done():
+			_ = conn.Close()
+		case <-done:
+		}
+	}()
+	defer close(done)
+
 	if scheme != "https" {
 		return conn, nil // HTTP 目标直接绝对 URL 请求式转发，无需握手
 	}

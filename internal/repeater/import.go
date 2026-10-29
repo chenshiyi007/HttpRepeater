@@ -59,8 +59,27 @@ func isCurlPrefix(s string) bool {
 	if len(s) == 4 {
 		return true
 	}
-	c := s[4]
-	return c == ' ' || c == '\t' || c == '\\' || c == '\r' || c == '\n'
+	rest := s[4:]
+	if len(rest) >= 4 && strings.EqualFold(rest[:4], ".exe") {
+		return len(rest) == 4 || isCurlBoundary(rest[4])
+	}
+	return isCurlBoundary(rest[0])
+}
+
+func isCurlBoundary(c byte) bool {
+	return c == ' ' || c == '\t' || c == '\\' || c == '^' || c == '\r' || c == '\n'
+}
+
+// isCurlWord 判断拆分后的首词是否为 curl / curl.exe
+func isCurlWord(s string) bool {
+	if len(s) < 4 || !strings.EqualFold(s[:4], "curl") {
+		return false
+	}
+	rest := s[4:]
+	if rest == "" {
+		return true
+	}
+	return len(rest) == 4 && strings.EqualFold(rest, ".exe")
 }
 
 // ---- curl ----
@@ -71,11 +90,11 @@ type curlData struct {
 }
 
 func parseCurl(src string, l lang) (*ImportedRequest, error) {
-	words, err := splitShellWords(src, l)
+	words, err := splitCurlWords(src, l)
 	if err != nil {
 		return nil, err
 	}
-	if len(words) == 0 || !strings.EqualFold(words[0], "curl") {
+	if len(words) == 0 || !isCurlWord(words[0]) {
 		return nil, newLangError(l, "不是 curl 命令或 fetch 代码", "not a curl command or fetch code")
 	}
 
@@ -261,6 +280,161 @@ func curlFlagTakesValue(flag string) bool {
 		return true
 	}
 	return false
+}
+
+// splitCurlWords 按平台选择拆分方式：Windows cmd（浏览器「Copy as cURL (cmd)」）
+// 与 POSIX shell。识别失败时回退到另一种，尽量兼容手工粘贴的命令。
+func splitCurlWords(src string, l lang) ([]string, error) {
+	cmdLike := isWindowsCmdCurl(src)
+	var cmdWords []string
+	var cmdErr error
+	if cmdLike {
+		cmdWords, cmdErr = splitWindowsCmdWords(normalizeWindowsCmd(src), l)
+		if cmdErr == nil && curlWordsLookUsable(cmdWords) {
+			return cmdWords, nil
+		}
+	}
+
+	posixWords, posixErr := splitShellWords(src, l)
+	if posixErr == nil && curlWordsLookUsable(posixWords) {
+		return posixWords, nil
+	}
+	if cmdLike {
+		if cmdErr == nil {
+			return cmdWords, nil
+		}
+		return nil, cmdErr
+	}
+	return posixWords, posixErr
+}
+
+func curlWordsLookUsable(words []string) bool {
+	if len(words) == 0 || !isCurlWord(words[0]) {
+		return false
+	}
+	for _, w := range words[1:] {
+		if !strings.HasPrefix(w, "-") && looksLikeURL(w) {
+			return true
+		}
+	}
+	return false
+}
+
+// isWindowsCmdCurl 识别 cmd 专有写法：^" 参数包裹，或 ^ 续行
+func isWindowsCmdCurl(s string) bool {
+	if strings.Contains(s, `^"`) {
+		return true
+	}
+	for i := 0; i < len(s); i++ {
+		if s[i] != '^' {
+			continue
+		}
+		if i+1 < len(s) && s[i+1] == '\n' {
+			return true
+		}
+		if i+2 < len(s) && s[i+1] == '\r' && s[i+2] == '\n' {
+			return true
+		}
+	}
+	return false
+}
+
+// normalizeWindowsCmd 处理 cmd 层转义，输出交给 Windows C 运行库参数规则解析的文本：
+//   - ^ + 换行 = 续行（Chrome 用 "^换行换行" 表示参数里的真实换行）
+//   - 引号外的 ^X 去掉 ^；普通双引号内的 ^ 按 cmd 语义保留为字面量
+//   - ^" 是转义引号，交给 C 运行库当普通引号处理
+func normalizeWindowsCmd(s string) string {
+	var b strings.Builder
+	b.Grow(len(s))
+	inQuotes := false
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if c == '^' {
+			if i+1 < len(s) && s[i+1] == '\n' {
+				i++ // 续行
+				continue
+			}
+			if i+2 < len(s) && s[i+1] == '\r' && s[i+2] == '\n' {
+				i += 2 // 续行
+				continue
+			}
+			if inQuotes {
+				b.WriteByte('^')
+				continue
+			}
+			if i+1 < len(s) {
+				b.WriteByte(s[i+1])
+				i++
+			}
+			continue
+		}
+		if c == '"' {
+			inQuotes = !inQuotes
+		}
+		b.WriteByte(c)
+	}
+	return b.String()
+}
+
+// splitWindowsCmdWords 按 Windows C 运行库规则拆分参数（双引号、反斜杠转义引号）
+func splitWindowsCmdWords(s string, l lang) ([]string, error) {
+	var (
+		words   []string
+		current strings.Builder
+		inWord  bool
+		inQuote bool
+	)
+	for i := 0; i < len(s); {
+		c := s[i]
+		if !inQuote && (c == ' ' || c == '\t' || c == '\r' || c == '\n') {
+			if inWord {
+				words = append(words, current.String())
+				current.Reset()
+				inWord = false
+			}
+			i++
+			continue
+		}
+		if c == '\\' {
+			start := i
+			for i < len(s) && s[i] == '\\' {
+				i++
+			}
+			n := i - start
+			if i < len(s) && s[i] == '"' {
+				for k := 0; k < n/2; k++ {
+					current.WriteByte('\\')
+				}
+				inWord = true
+				if n%2 == 1 {
+					current.WriteByte('"')
+					i++
+				}
+				continue
+			}
+			for k := 0; k < n; k++ {
+				current.WriteByte('\\')
+			}
+			inWord = true
+			continue
+		}
+		if c == '"' {
+			inQuote = !inQuote
+			inWord = true
+			i++
+			continue
+		}
+		current.WriteByte(c)
+		inWord = true
+		i++
+	}
+	if inQuote {
+		return nil, newLangError(l, "curl 命令引号未闭合", "unterminated quote in the curl command")
+	}
+	if inWord {
+		words = append(words, current.String())
+	}
+	return words, nil
 }
 
 // splitShellWords 按 POSIX shell 规则拆分 curl 命令（单/双引号、反斜杠续行、$'...'）

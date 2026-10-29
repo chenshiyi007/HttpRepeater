@@ -1,8 +1,9 @@
 <script lang="ts" setup>
 import { computed } from 'vue'
 import { NButton, NIcon, NInput, NPopover, NSelect, NSwitch, useMessage } from 'naive-ui'
-import { LinkOutline, PaperPlaneOutline, RefreshOutline, SettingsOutline } from '@vicons/ionicons5'
-import { useTabsStore, DEFAULT_PROXY_URL } from '../stores/tabs'
+import { CloseCircleOutline, LinkOutline, PaperPlaneOutline, RefreshOutline, SettingsOutline } from '@vicons/ionicons5'
+import { useTabsStore } from '../stores/tabs'
+import { DEFAULT_PROXY_URL, useSettingsStore } from '../stores/settings'
 import { parseRaw } from '../api/repeater'
 import { lang, t } from '../i18n'
 import { sendShortcut } from '../utils/platform'
@@ -10,7 +11,10 @@ import { sendShortcut } from '../utils/platform'
 const emit = defineEmits<{ (e: 'send'): void }>()
 
 const store = useTabsStore()
+const settings = useSettingsStore()
 const message = useMessage()
+
+const defaultProxyURL = computed(() => settings.defaultProxyUrl || DEFAULT_PROXY_URL)
 
 const tab = computed(() => store.activeTab)
 const schemeOptions = [
@@ -82,7 +86,7 @@ function onProxyInput(value: string) {
 }
 
 function resetProxy() {
-  store.updateTarget({ proxyURL: DEFAULT_PROXY_URL })
+  store.updateTarget({ proxyURL: defaultProxyURL.value })
 }
 </script>
 
@@ -153,11 +157,11 @@ function resetProxy() {
           <n-input
             size="small"
             :value="tab?.target.proxyURL ?? ''"
-            :placeholder="DEFAULT_PROXY_URL"
+            :placeholder="defaultProxyURL"
             @update:value="onProxyInput"
           />
           <n-button size="tiny" quaternary @click="resetProxy">
-            {{ t('target.proxyReset', { url: DEFAULT_PROXY_URL }) }}
+            {{ t('target.proxyReset', { url: defaultProxyURL }) }}
           </n-button>
           <div class="proxy-pop-hint">{{ t('target.proxyHint') }}</div>
         </div>
@@ -183,10 +187,23 @@ function resetProxy() {
     </label>
 
     <n-button
+      v-if="store.sending"
+      type="error"
+      secondary
+      size="small"
+      class="send-btn"
+      @click="store.cancelSending()"
+    >
+      <template #icon>
+        <n-icon :component="CloseCircleOutline" />
+      </template>
+      {{ t('target.cancel') }}
+    </n-button>
+    <n-button
+      v-else
       type="primary"
       size="small"
       class="send-btn"
-      :loading="store.sending"
       @click="emit('send')"
     >
       <template #icon>

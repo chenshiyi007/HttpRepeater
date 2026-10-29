@@ -1,18 +1,34 @@
 <script lang="ts" setup>
-import { computed, ref } from 'vue'
+import { computed, onBeforeUnmount, ref, watch } from 'vue'
 import { NButton, NDropdown, NIcon, useMessage } from 'naive-ui'
-import { ChevronDownOutline, DocumentTextOutline, DownloadOutline } from '@vicons/ionicons5'
+import type { DropdownDividerOption, DropdownOption } from 'naive-ui'
+import {
+  ChatbubbleEllipsesOutline,
+  ChevronDownOutline,
+  DocumentTextOutline,
+  DownloadOutline,
+} from '@vicons/ionicons5'
 import { ClipboardGetText } from '../../wailsjs/runtime/runtime'
 import { useTabsStore } from '../stores/tabs'
+import { useUiStore } from '../stores/ui'
 import { builtinTemplates } from '../utils/templates'
-import { importRequest, parseRaw } from '../api/repeater'
+import {
+  buildRequestCurl,
+  buildRequestURL,
+  convertRequestMethod,
+  importRequest,
+  parseRaw,
+} from '../api/repeater'
+import { copyText } from '../utils/clipboard'
 import { lang, t } from '../i18n'
+import type { RequestToolInput } from '../types'
 import RequestEditor from './RequestEditor.vue'
 import HistoryNav from './HistoryNav.vue'
 
 const emit = defineEmits<{ (e: 'send'): void }>()
 
 const store = useTabsStore()
+const ui = useUiStore()
 const message = useMessage()
 const showDropdown = ref(false)
 
@@ -36,7 +52,7 @@ function onTemplateSelect(key: string | number) {
 // ---- curl / fetch 导入 ----
 
 function looksLikeImport(text: string): boolean {
-  return /^\s*(?:\$\s*)?curl\b/i.test(text) || /\bfetch\s*\(/.test(text)
+  return /^\s*(?:[$>»]\s*)?curl(?:\.exe)?\b/i.test(text) || /\bfetch\s*\(/.test(text)
 }
 
 async function applyImport(text: string): Promise<{ error?: string }> {
@@ -113,6 +129,118 @@ async function onPaste(fullText: string) {
     // 自动解析失败不阻塞输入（手动点"解析"时再提示）
   }
 }
+
+// ---- 编辑器右键菜单：复制 URL / 复制为 curl / GET↔POST ----
+
+const ctxShow = ref(false)
+const ctxX = ref(0)
+const ctxY = ref(0)
+
+const ctxMethod = computed(() => {
+  const text = store.activeTab?.requestText.trim() ?? ''
+  return text ? text.split(/\s+/)[0].toUpperCase() : ''
+})
+
+const ctxHasRequest = computed(() => !!store.activeTab?.requestText.trim())
+
+const ctxOptions = computed<Array<DropdownOption | DropdownDividerOption>>(() => {
+  const method = ctxMethod.value
+  const convertible = method === 'GET' || method === 'POST'
+  return [
+    { label: t('ctx.copyUrl'), key: 'copy-url', disabled: !ctxHasRequest.value },
+    { label: t('ctx.copyCurl'), key: 'copy-curl', disabled: !ctxHasRequest.value },
+    { type: 'divider', key: 'ctx-divider' },
+    {
+      label:
+        method === 'GET'
+          ? t('ctx.convertToPost')
+          : method === 'POST'
+            ? t('ctx.convertToGet')
+            : t('ctx.convertUnsupported'),
+      key: 'convert-method',
+      disabled: !ctxHasRequest.value || !convertible,
+    },
+  ]
+})
+
+function onContextMenu(pos: { x: number; y: number }) {
+  ctxX.value = pos.x
+  ctxY.value = pos.y
+  ctxShow.value = true
+}
+
+// manual dropdown 不触发 clickoutside，这里用 document 监听保证点外部/Esc 能关闭
+function onDocumentPointerDown(event: PointerEvent) {
+  for (const node of event.composedPath()) {
+    if (
+      node instanceof HTMLElement &&
+      (node.classList.contains('ctx-menu') || node.classList.contains('n-dropdown-menu'))
+    ) {
+      return
+    }
+  }
+  ctxShow.value = false
+}
+
+function onDocumentKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape') ctxShow.value = false
+}
+
+watch(ctxShow, (show) => {
+  if (show) {
+    document.addEventListener('pointerdown', onDocumentPointerDown, true)
+    document.addEventListener('keydown', onDocumentKeydown, true)
+  } else {
+    document.removeEventListener('pointerdown', onDocumentPointerDown, true)
+    document.removeEventListener('keydown', onDocumentKeydown, true)
+  }
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('pointerdown', onDocumentPointerDown, true)
+  document.removeEventListener('keydown', onDocumentKeydown, true)
+})
+
+function currentToolInput(): RequestToolInput | null {
+  const tab = store.activeTab
+  if (!tab) return null
+  return {
+    requestText: tab.requestText,
+    scheme: tab.target.scheme,
+    host: tab.target.host,
+    port: tab.target.port,
+    lang: lang.value,
+  }
+}
+
+async function onContextSelect(key: string | number) {
+  ctxShow.value = false
+  const input = currentToolInput()
+  if (!input) return
+  try {
+    if (key === 'copy-url') {
+      const res = await buildRequestURL(input)
+      await copyText(res.text)
+      message.success(t('ctx.copyUrlDone'))
+    } else if (key === 'copy-curl') {
+      const res = await buildRequestCurl(input)
+      await copyText(res.text)
+      message.success(t('ctx.copyCurlDone'))
+    } else if (key === 'convert-method') {
+      const from = ctxMethod.value
+      const res = await convertRequestMethod(input)
+      store.setRequestText(res.text)
+      message.success(t('ctx.converted', { method: from === 'GET' ? 'POST' : 'GET' }))
+    }
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e)
+    if (key === 'convert-method') {
+      message.error(t('ctx.convertFailed', { msg }))
+    } else {
+      message.error(t('ctx.copyFailed', { msg }))
+    }
+  }
+}
 </script>
 
 <template>
@@ -150,14 +278,42 @@ async function onPaste(fullText: string) {
         {{ t('request.import') }}
       </n-button>
 
+      <n-button
+        size="tiny"
+        quaternary
+        class="tpl-btn"
+        :title="t('request.aiTitle')"
+        @click="ui.openAi()"
+      >
+        <template #icon>
+          <n-icon :component="ChatbubbleEllipsesOutline" />
+        </template>
+        {{ t('request.ai') }}
+      </n-button>
+
       <div class="header-spacer"></div>
 
       <HistoryNav />
     </div>
 
     <div class="panel-body">
-      <RequestEditor @send="emit('send')" @paste="onPaste" />
+      <RequestEditor
+        @send="emit('send')"
+        @paste="onPaste"
+        @contextmenu="onContextMenu"
+      />
     </div>
+
+    <n-dropdown
+      trigger="manual"
+      placement="bottom-start"
+      class="ctx-menu"
+      :show="ctxShow"
+      :x="ctxX"
+      :y="ctxY"
+      :options="ctxOptions"
+      @select="onContextSelect"
+    />
   </div>
 </template>
 

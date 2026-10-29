@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia'
 import type { HistoryItem, RepeaterTab, ResponseResult, SendRequest, Target } from '../types'
-import { sendRequest } from '../api/repeater'
+import { cancelSend, sendRequest } from '../api/repeater'
 import { lang, t } from '../i18n'
+import { DEFAULT_PROXY_URL, useSettingsStore } from './settings'
 
 let uidCounter = 0
 
@@ -17,10 +18,7 @@ function nextHistoryId(): string {
   return `hist-${Date.now().toString(36)}-${historyCounter}`
 }
 
-// 默认下游代理地址（Clash / mihomo 常见本地端口）
-export const DEFAULT_PROXY_URL = 'http://127.0.0.1:7890'
-
-function createTab(seq: number): RepeaterTab {
+function createTab(seq: number, proxyURL: string): RepeaterTab {
   return {
     id: nextTabId(),
     title: t('tab.defaultTitle', { n: seq }),
@@ -30,7 +28,7 @@ function createTab(seq: number): RepeaterTab {
       host: '',
       port: 0,
       useProxy: false,
-      proxyURL: DEFAULT_PROXY_URL,
+      proxyURL: proxyURL || DEFAULT_PROXY_URL,
     },
     followHostHeader: true,
     autoContentLength: true,
@@ -43,7 +41,7 @@ function createTab(seq: number): RepeaterTab {
 // 标签页状态：增/删/改名/切换 + 目标编辑 + 发送
 export const useTabsStore = defineStore('tabs', {
   state: () => {
-    const first = createTab(1)
+    const first = createTab(1, DEFAULT_PROXY_URL)
     return {
       tabs: [first] as RepeaterTab[],
       activeTabId: first.id,
@@ -72,7 +70,8 @@ export const useTabsStore = defineStore('tabs', {
   actions: {
     addTab() {
       this.tabSeq += 1
-      const tab = createTab(this.tabSeq)
+      const settings = useSettingsStore()
+      const tab = createTab(this.tabSeq, settings.defaultProxyUrl || DEFAULT_PROXY_URL)
       this.tabs.push(tab)
       this.activeTabId = tab.id
     },
@@ -126,6 +125,17 @@ export const useTabsStore = defineStore('tabs', {
         tab.updatedAt = Date.now()
       }
     },
+    // 默认代理变化时，同步仍在使用旧默认值的标签
+    applyDefaultProxy(oldURL: string, newURL: string) {
+      const previous = (oldURL || '').trim()
+      const next = (newURL || '').trim()
+      if (!next || previous === next) return
+      for (const tab of this.tabs) {
+        if ((tab.target.proxyURL || '').trim() === previous) {
+          tab.target.proxyURL = next
+        }
+      }
+    },
     // 加载某条历史快照到编辑器（Burp 行为：切换历史 = 载入该请求，可改后重发）
     loadHistory(index: number) {
       const tab = this.activeTab
@@ -137,9 +147,17 @@ export const useTabsStore = defineStore('tabs', {
       tab.updatedAt = Date.now()
     },
 
+    // 取消正在发送的请求；Go 侧关闭连接，sendActiveTab 会收到「已取消」结果并入历史
+    async cancelSending(): Promise<void> {
+      if (!this.sending) return
+      try {
+        await cancelSend()
+      } catch {
+        // 请求可能已经结束，忽略取消失败
+      }
+    },
     // 发送当前标签的请求；返回 error 表示未发出（网络错误会记入历史，不算 error）
-    async sendActiveTab(): Promise<{ error?: string }> {
-      const tab = this.activeTab
+    async sendActiveTab(): Promise<{ error?: string }> {      const tab = this.activeTab
       if (!tab || this.sending) return {}
       if (!tab.requestText.trim()) return { error: t('error.requestEmpty') }
       if (!tab.target.host) return { error: t('error.hostRequired') }

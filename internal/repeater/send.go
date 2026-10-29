@@ -2,6 +2,7 @@ package repeater
 
 import (
 	"bytes"
+	"context"
 	"crypto/tls"
 	"encoding/base64"
 	"io"
@@ -52,6 +53,11 @@ type SendResult struct {
 // Send 手动 socket 逐字节发送；网络层错误写入 Response.Error，不返回 error
 // （失败的发送同样要生成历史记录）
 func Send(req SendRequest) *SendResult {
+	return sendWithContext(context.Background(), req)
+}
+
+// sendWithContext 可取消的发送实现；ctx 取消时关闭连接并返回「已取消」
+func sendWithContext(ctx context.Context, req SendRequest) *SendResult {
 	l := normalizeLang(req.Lang)
 	timeout := time.Duration(req.TimeoutMs) * time.Millisecond
 	if timeout <= 0 {
@@ -63,6 +69,13 @@ func Send(req SendRequest) *SendResult {
 		res.Response.Error = msg
 		res.Response.DurationMs = time.Since(start).Milliseconds()
 		return res
+	}
+	cancelled := func() bool { return ctx.Err() != nil }
+	failIfCancelled := func() *SendResult {
+		if cancelled() {
+			return fail(tr(l, "已取消", "cancelled"))
+		}
+		return nil
 	}
 
 	parsed, err := parseRequestLang(req.Raw, l)
@@ -149,20 +162,40 @@ func Send(req SendRequest) *SendResult {
 
 	address := net.JoinHostPort(host, strconv.Itoa(port))
 	dialer := &net.Dialer{Timeout: timeout}
+	if res := failIfCancelled(); res != nil {
+		return res
+	}
 	var conn net.Conn
 	if proxy != nil {
-		conn, err = dialViaProxy(proxy, scheme, host, port, timeout, l)
+		conn, err = dialViaProxy(ctx, proxy, scheme, host, port, timeout, l)
 		if err != nil {
+			if res := failIfCancelled(); res != nil {
+				return res
+			}
 			return fail(err.Error())
 		}
 	} else {
-		conn, err = dialer.Dial("tcp", address)
+		conn, err = dialer.DialContext(ctx, "tcp", address)
 		if err != nil {
+			if res := failIfCancelled(); res != nil {
+				return res
+			}
 			return fail(tr(l, "连接失败: ", "connection failed: ") + err.Error())
 		}
 	}
 	defer conn.Close()
 	_ = conn.SetDeadline(time.Now().Add(timeout))
+
+	// ctx 取消时关闭连接，让阻塞中的 TLS 握手 / 读写立即返回
+	connDone := make(chan struct{})
+	defer close(connDone)
+	go func() {
+		select {
+		case <-ctx.Done():
+			_ = conn.Close()
+		case <-connDone:
+		}
+	}()
 
 	var rw io.ReadWriter = conn
 	if scheme == "https" {
@@ -170,13 +203,19 @@ func Send(req SendRequest) *SendResult {
 			InsecureSkipVerify: !req.VerifyTLS, // 默认忽略证书校验
 			ServerName:         host,
 		})
-		if err := tlsConn.Handshake(); err != nil {
+		if err := tlsConn.HandshakeContext(ctx); err != nil {
+			if res := failIfCancelled(); res != nil {
+				return res
+			}
 			return fail(tr(l, "TLS 握手失败: ", "TLS handshake failed: ") + err.Error())
 		}
 		rw = tlsConn
 	}
 
 	if _, err := rw.Write(requestBytes); err != nil {
+		if res := failIfCancelled(); res != nil {
+			return res
+		}
 		return fail(tr(l, "发送请求失败: ", "failed to send the request: ") + err.Error())
 	}
 
@@ -189,7 +228,11 @@ func Send(req SendRequest) *SendResult {
 	res.Response.BodyDecoded = string(decodeBody(rawResp.headerLines, rawResp.body))
 	res.Response.DurationMs = time.Since(start).Milliseconds()
 	if readErr != nil {
-		res.Response.Error = tr(l, "读取响应失败: ", "failed to read the response: ") + readErr.Error()
+		if cancelled() {
+			res.Response.Error = tr(l, "已取消", "cancelled")
+		} else {
+			res.Response.Error = tr(l, "读取响应失败: ", "failed to read the response: ") + readErr.Error()
+		}
 	}
 	return res
 }

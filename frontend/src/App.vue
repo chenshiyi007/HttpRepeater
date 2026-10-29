@@ -1,5 +1,5 @@
 <script lang="ts" setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import {
   NButton,
   NConfigProvider,
@@ -13,10 +13,14 @@ import {
   enUS,
   dateEnUS,
 } from 'naive-ui'
-import { MoonOutline, SunnyOutline, LogoGithub } from '@vicons/ionicons5'
+import { MoonOutline, SunnyOutline, LogoGithub, SettingsOutline } from '@vicons/ionicons5'
 import RepeaterView from './views/RepeaterView.vue'
-import { useSettingsStore } from './stores/settings'
-import { lang, t, toggleLang } from './i18n'
+import SettingsModal from './components/SettingsModal.vue'
+import AiChatModal from './components/AiChatModal.vue'
+import { DEFAULT_PROXY_URL, useSettingsStore } from './stores/settings'
+import { useTabsStore } from './stores/tabs'
+import { useUiStore } from './stores/ui'
+import { lang, t } from './i18n'
 import { BrowserOpenURL } from '../wailsjs/runtime/runtime'
 
 const GITHUB_URL = 'https://github.com/chenshiyi007/HttpRepeater'
@@ -37,9 +41,22 @@ const appVersionDetail = [
   .join(' · ')
 
 const settings = useSettingsStore()
+const tabs = useTabsStore()
+const ui = useUiStore()
 const naiveTheme = computed(() => (settings.theme === 'dark' ? darkTheme : lightTheme))
 const naiveLocale = computed(() => (lang.value === 'zh' ? zhCN : enUS))
 const naiveDateLocale = computed(() => (lang.value === 'zh' ? dateZhCN : dateEnUS))
+
+function switchLang() {
+  void settings.setLanguage(lang.value === 'zh' ? 'en' : 'zh')
+}
+
+onMounted(() => {
+  // 设置文件里的默认代理在首次建标签后加载完成，同步到仍使用旧默认值的标签
+  if (settings.defaultProxyUrl !== DEFAULT_PROXY_URL) {
+    tabs.applyDefaultProxy(DEFAULT_PROXY_URL, settings.defaultProxyUrl)
+  }
+})
 
 function openGitHub() {
   try {
@@ -85,7 +102,7 @@ function openGitHub() {
               size="small"
               class="lang-btn"
               :title="t('app.switchLang')"
-              @click="toggleLang()"
+              @click="switchLang"
             >
               {{ lang === 'zh' ? 'EN' : '中' }}
             </n-button>
@@ -100,11 +117,24 @@ function openGitHub() {
                 <n-icon :component="settings.theme === 'dark' ? SunnyOutline : MoonOutline" />
               </template>
             </n-button>
+            <n-button
+              quaternary
+              circle
+              size="small"
+              :title="t('app.settings')"
+              @click="ui.openSettings()"
+            >
+              <template #icon>
+                <n-icon :component="SettingsOutline" />
+              </template>
+            </n-button>
           </header>
           <div class="app-body">
             <RepeaterView />
           </div>
         </div>
+        <SettingsModal />
+        <AiChatModal />
       </n-message-provider>
     </n-dialog-provider>
   </n-config-provider>

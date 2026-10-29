@@ -89,3 +89,66 @@ export interface ImportedRequest {
   hostHeaderMismatch: boolean
   warnings: string[] | null
 }
+
+// ---- 设置（对应 ~/.httpRepeater/setting.json）----
+
+export type ApiType = 'responses' | 'completions'
+export type ReasoningEffort = '' | 'minimal' | 'low' | 'medium' | 'high'
+
+export interface LLMSettings {
+  baseUrl: string
+  apiKey: string
+  model: string
+  apiType: ApiType
+  reasoningEffort: ReasoningEffort
+  systemPrompt: string
+}
+
+export interface AppSettings {
+  language: 'zh' | 'en'
+  theme: 'dark' | 'light'
+  defaultProxyUrl: string
+  llm: LLMSettings
+}
+
+export interface SettingsLoadResult {
+  settings: AppSettings
+  path: string
+  exists: boolean
+  error: string
+  defaultSystemPrompt: string
+}
+
+// ---- AI 对话 ----
+
+export interface ChatMessage {
+  role: 'user' | 'assistant'
+  content: string
+}
+
+export interface ChatRequest {
+  messages: ChatMessage[]
+  requestText: string
+  scheme: string
+  host: string
+  port: number
+  lang: 'zh' | 'en'
+}
+
+export interface ChatResponse {
+  content: string
+}
+
+// ---- 右键菜单工具 ----
+
+export interface RequestToolInput {
+  requestText: string
+  scheme: string
+  host: string
+  port: number
+  lang: 'zh' | 'en'
+}
+
+export interface RequestToolResult {
+  text: string
+}

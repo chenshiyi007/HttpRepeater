@@ -14,7 +14,11 @@ const pinia = createPinia()
 const app = createApp(App).use(pinia)
 
 // 挂载前应用主题与语言，避免首帧闪烁
-useSettingsStore(pinia).initTheme()
+const settings = useSettingsStore(pinia)
+settings.initTheme()
 initLang()
 
-app.mount('#app')
+// 先读完 ~/.httpRepeater/setting.json 再挂载，保证设置页拿到的是最终值
+void settings.load().finally(() => {
+  app.mount('#app')
+})

@@ -11,6 +11,7 @@ import { useSettingsStore, type ThemeMode } from '../stores/settings'
 const emit = defineEmits<{
   (e: 'send'): void
   (e: 'paste', text: string): void
+  (e: 'contextmenu', pos: { x: number; y: number }): void
 }>()
 
 const store = useTabsStore()
@@ -85,6 +86,11 @@ function createState(doc: string): EditorState {
             }
           }, 0)
           return false
+        },
+        contextmenu: (event) => {
+          event.preventDefault()
+          emit('contextmenu', { x: event.clientX, y: event.clientY })
+          return true
         },
       }),
     ],
