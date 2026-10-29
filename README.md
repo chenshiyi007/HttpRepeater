@@ -2,7 +2,8 @@
 
 **English** · [简体中文](README.zh-CN.md)
 
-[![Go](https://img.shields.io/badge/Go-1.25+-00ADD8?logo=go&logoColor=white)](https://go.dev/)
+[![CI](https://github.com/chenshiyi007/HttpRepeater/actions/workflows/ci.yml/badge.svg)](https://github.com/chenshiyi007/HttpRepeater/actions/workflows/ci.yml)
+[![Go](https://img.shields.io/badge/Go-1.26+-00ADD8?logo=go&logoColor=white)](https://go.dev/)
 [![Wails](https://img.shields.io/badge/Wails-v2-DF1D1D)](https://wails.io/)
 [![Vue](https://img.shields.io/badge/Vue-3-42B883?logo=vuedotjs&logoColor=white)](https://vuejs.org/)
 [![Platforms](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)](#build-from-source)
@@ -14,8 +15,17 @@ Edit a raw HTTP request, send it exactly as written, inspect the response, and k
 history of everything you sent — without launching a full interception proxy.
 
 <p align="center">
-  <img src="assets/screenshots/main-dark-en.png" alt="HttpRepeater main window" width="900">
+  <img src="assets/screenshots/demo.gif" alt="HttpRepeater demo: import a curl command, send it, and inspect the response" width="1000">
 </p>
+
+## Download
+
+- [macOS (universal)](https://github.com/chenshiyi007/HttpRepeater/releases/download/v1.1.0/HttpRepeater-1.1.0-macos-universal.zip)
+- [Windows (amd64)](https://github.com/chenshiyi007/HttpRepeater/releases/download/v1.1.0/HttpRepeater-1.1.0-windows-amd64.zip)
+- [All releases](https://github.com/chenshiyi007/HttpRepeater/releases)
+
+The builds are unsigned. On macOS, right-click the app and choose **Open** the first time, or allow
+it in System Settings → Privacy & Security. On Windows, SmartScreen may warn.
 
 Built with [Wails v2](https://wails.io/) (Go backend + system WebView), Vue 3, TypeScript,
 Naive UI and CodeMirror 6. No JVM, no browser extension.
@@ -422,6 +432,15 @@ Use `PLATFORM=darwin/universal` for a universal macOS build. Linux packages must
 | `assets/screenshots/` | Images used in the README |
 | `Makefile` | Build, packaging and GitHub release targets |
 | `scripts/` | Release notes and `wails.json` version helpers |
+
+## Star history
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=chenshiyi007/HttpRepeater&amp;type=Date&amp;theme=dark">
+    <img src="https://api.star-history.com/svg?repos=chenshiyi007/HttpRepeater&amp;type=Date" alt="HttpRepeater star history" width="700">
+  </picture>
+</p>
 
 ## License
 

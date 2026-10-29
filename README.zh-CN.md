@@ -2,7 +2,8 @@
 
 [English](README.md) · **简体中文**
 
-[![Go](https://img.shields.io/badge/Go-1.25+-00ADD8?logo=go&logoColor=white)](https://go.dev/)
+[![CI](https://github.com/chenshiyi007/HttpRepeater/actions/workflows/ci.yml/badge.svg)](https://github.com/chenshiyi007/HttpRepeater/actions/workflows/ci.yml)
+[![Go](https://img.shields.io/badge/Go-1.26+-00ADD8?logo=go&logoColor=white)](https://go.dev/)
 [![Wails](https://img.shields.io/badge/Wails-v2-DF1D1D)](https://wails.io/)
 [![Vue](https://img.shields.io/badge/Vue-3-42B883?logo=vuedotjs&logoColor=white)](https://vuejs.org/)
 [![Platforms](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)](#从源码构建)
@@ -13,8 +14,17 @@
 编辑原始 HTTP 报文，按原样发送，查看响应，并在每个标签页里保留发送历史——不需要启动一整套抓包代理。
 
 <p align="center">
-  <img src="assets/screenshots/main-dark-zh.png" alt="HttpRepeater 主界面" width="900">
+  <img src="assets/screenshots/demo-zh.gif" alt="HttpRepeater 演示：导入 curl、发送请求并查看响应" width="1000">
 </p>
+
+## 下载
+
+- [macOS（通用包）](https://github.com/chenshiyi007/HttpRepeater/releases/download/v1.1.0/HttpRepeater-1.1.0-macos-universal.zip)
+- [Windows（amd64）](https://github.com/chenshiyi007/HttpRepeater/releases/download/v1.1.0/HttpRepeater-1.1.0-windows-amd64.zip)
+- [所有版本](https://github.com/chenshiyi007/HttpRepeater/releases)
+
+安装包未签名。macOS 首次打开请右键选择「打开」，或在「系统设置 → 隐私与安全性」中允许；
+Windows 可能触发 SmartScreen 提示。
 
 技术栈：[Wails v2](https://wails.io/)（Go 后端 + 系统 WebView）、Vue 3、TypeScript、Naive UI、
 CodeMirror 6。不依赖 JVM，也不需要浏览器插件。
@@ -384,6 +394,15 @@ macOS 通用包用 `PLATFORM=darwin/universal`；Linux 包需要在 Linux（或 
 | `assets/screenshots/` | README 使用的截图 |
 | `Makefile` | 构建、打包与 GitHub Release 目标 |
 | `scripts/` | Release notes 与 `wails.json` 版本辅助脚本 |
+
+## Star 趋势
+
+<p align="center">
+  <picture>
+    <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/svg?repos=chenshiyi007/HttpRepeater&amp;type=Date&amp;theme=dark">
+    <img src="https://api.star-history.com/svg?repos=chenshiyi007/HttpRepeater&amp;type=Date" alt="HttpRepeater Star 趋势" width="700">
+  </picture>
+</p>
 
 ## 许可证
 
