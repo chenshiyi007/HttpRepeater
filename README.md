@@ -130,6 +130,18 @@ use Burp, ZAP, mitmproxy or other tools for interception, crawling, scanning and
 - **Compare responses over time.** Change one parameter, resend, and page through the history to
   compare status codes, headers and bodies.
 
+### AI in practice
+
+<p align="center">
+  <img src="assets/screenshots/ai-poc-en.png" alt="AI turning an N-day advisory into a verification request" width="900"><br>
+  <em>N-day advisory → a ready-to-send verification request</em>
+</p>
+
+<p align="center">
+  <img src="assets/screenshots/ai-injection-en.png" alt="AI drafting SQL injection payloads for an id parameter" width="900"><br>
+  <em>Injection testing → candidate payloads for the id parameter</em>
+</p>
+
 > Only use this tool against systems you own or have explicit permission to test.
 
 ## Build from source

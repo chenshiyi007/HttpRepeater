@@ -116,6 +116,18 @@ HttpRepeater **不是** Burp Suite 的替代品。它只覆盖 Repeater 这一�
 - **同时调试多个接口。** 一个接口一个标签，各自保留历史和代理设置。
 - **对比多次响应。** 改一个参数重发，然后在历史里前后翻看状态码、响应头和 body 的变化。
 
+### AI 实战示例
+
+<p align="center">
+  <img src="assets/screenshots/ai-poc-zh.png" alt="用 AI 把 N-day 通告变成验证请求" width="900"><br>
+  <em>N-day 通告 → 可直接发送的验证请求</em>
+</p>
+
+<p align="center">
+  <img src="assets/screenshots/ai-injection-zh.png" alt="用 AI 为 id 参数构造 SQL 注入 payload" width="900"><br>
+  <em>注入测试 → 针对 id 参数的候选 payload</em>
+</p>
+
 > 请只在你拥有或已获得明确授权的系统上使用本工具。
 
 ## 从源码构建
