@@ -17,6 +17,19 @@
   <img src="assets/screenshots/demo-zh.gif" alt="HttpRepeater 演示：导入 curl、发送请求并查看响应" width="1000">
 </p>
 
+内置助手连接你自己的 LLM 服务：让它改写请求或编写 payload，检查生成的原始报文，一键应用回
+编辑器，再由你自己发送——工具绝不会自动发包。
+
+<p align="center">
+  <img src="assets/screenshots/ai-request-zh.gif" alt="AI 助手把请求改成 JSON POST，应用回编辑器并发送" width="1000"><br>
+  <em>"把请求改成 JSON POST" → 应用 → 发送</em>
+</p>
+
+<p align="center">
+  <img src="assets/screenshots/ai-payload-zh.gif" alt="用 AI 为 id 参数构造注入 payload，应用后重放" width="1000"><br>
+  <em>"帮我写一个测试 payload" → 应用 → 重放</em>
+</p>
+
 ## 下载
 
 - [macOS（通用包）](https://github.com/chenshiyi007/HttpRepeater/releases/download/v1.1.0/HttpRepeater-1.1.0-macos-universal.zip)
@@ -108,8 +121,13 @@ HttpRepeater **不是** Burp Suite 的替代品。它只覆盖 Repeater 这一�
 
 - **重放抓到的请求。** 从 DevTools、Burp 或日志里复制请求，粘贴进来，改 Header、Cookie 或 body
   字段，再次发送。上一次的结果留在历史里。
-- **把 curl 变成可编辑报文。** 粘贴 `curl 'https://api.example.com/v1/login' ...` 或浏览器里的
-  `fetch(...)` 代码，HttpRepeater 会自动填好目标并生成原始请求。
+- **审核漏洞报告。** 报告或工单里直接给了原始 HTTP 请求？原样粘贴进来——不用开代理、不用重新
+  抓包——改个参数重发，就能确认或排除这个问题。
+- **快速验证工具产出。** 代码审计、扫描器或 AI 助手给出了一条原始请求或 payload？粘贴进来
+  几秒内就能发出去，每个标签的历史会保留每一次尝试，方便对比。
+- **把 curl 变成可编辑报文（无需代理）。** 没在抓包也能测：浏览器开发者工具里用
+  **Copy as cURL** / **Copy as fetch**（bash 或 Windows `cmd` 格式都行）复制请求，粘贴进来，
+  HttpRepeater 自动填好目标并生成原始请求。
 - **让 AI 帮你写 payload。** 把需求告诉内置助手，检查它生成的原始报文，一键应用回编辑器，
   再由你自己发送。
 - **把通告变成可复现的验证请求。** 把 CVE / 通告信息发给助手，让它针对本地复现环境写一条原始
@@ -119,6 +137,8 @@ HttpRepeater **不是** Burp Suite 的替代品。它只覆盖 Repeater 这一�
   本地靶场里测试 `id` 参数的 SQL 注入，返回几条候选 payload 和完整请求。"* 回复可以一键应用回
   编辑器反复重放，工具不会自动发包。其他 N-day 的 PoC 也同理，例如：*"给本地
   http://127.0.0.1:8080 写一个 CVE-2024-XXXX 的验证请求。"*
+- **快速构造上传报文。** 找到了上传接口但手写 multipart 容易出错？从内置的 **multipart
+  文件上传** 模板起步，改一改各部分和 boundary 就能发。
 - **通过代理链测试。** 打开当前标签的代理，指向 Burp、Yakit、mitmproxy 或 Clash。HTTP 请求走
   绝对 URL，HTTPS 请求走 CONNECT 隧道。
 - **测试 Header 处理。** 关闭 **Host 跟随** 可以按原文发送 `Host`；关闭 **自动 CL** 可以自己控制
@@ -131,11 +151,6 @@ HttpRepeater **不是** Burp Suite 的替代品。它只覆盖 Repeater 这一�
 <p align="center">
   <img src="assets/screenshots/ai-poc-zh.png" alt="用 AI 把 N-day 通告变成验证请求" width="900"><br>
   <em>N-day 通告 → 可直接发送的验证请求</em>
-</p>
-
-<p align="center">
-  <img src="assets/screenshots/ai-payload-zh.gif" alt="用 AI 为 id 参数构造注入 payload，应用后重放" width="1000"><br>
-  <em>注入测试 → 针对 id 参数的候选 payload</em>
 </p>
 
 > 请只在你拥有或已获得明确授权的系统上使用本工具。
@@ -273,10 +288,7 @@ curl 支持 `-X/--request`、`-H/--header`、`-d/--data*`、`--json`、`-u/--use
 点 **导入** 旁边的 **AI** 打开对话页。当前编辑器里的请求会随每条消息一起发给模型，可以直接
 说"把查询参数移到 JSON body，改成 POST"，也可以让它写 payload 或解释报文。回复里包含完整
 原始报文时，会出现 **应用到请求** 按钮，点击即覆盖编辑器内容——工具绝不会替你发包。
-
-<p align="center">
-  <img src="assets/screenshots/ai-request-zh.gif" alt="AI 助手把请求改成 JSON POST，应用回编辑器并发送" width="1000">
-</p>
+（完整流程见本页顶部的演示动图。）
 
 助手调用的是设置页里配置的 LLM 服务（OpenAI 风格的 **Chat Completions** 或 **Responses** API）。
 对话记录只在本次运行期间保存在内存里。用 **Ctrl/⌘+Enter** 发送——Enter 只换行，输入法选词不会

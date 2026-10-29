@@ -18,6 +18,20 @@ history of everything you sent — without launching a full interception proxy.
   <img src="assets/screenshots/demo.gif" alt="HttpRepeater demo: import a curl command, send it, and inspect the response" width="1000">
 </p>
 
+The built-in assistant is backed by your own LLM endpoint: ask it to rewrite the request or draft
+payloads, review the raw result, apply it to the editor, and send it yourself — nothing is ever
+sent automatically.
+
+<p align="center">
+  <img src="assets/screenshots/ai-request-en.gif" alt="AI assistant turning the request into a JSON POST, applied to the editor and sent" width="1000"><br>
+  <em>“Turn this into a JSON POST” → applied to the editor → sent</em>
+</p>
+
+<p align="center">
+  <img src="assets/screenshots/ai-payload-en.gif" alt="AI drafting an injection payload for the id parameter, applied and replayed" width="1000"><br>
+  <em>“Write a test payload” → applied and replayed</em>
+</p>
+
 ## Download
 
 - [macOS (universal)](https://github.com/chenshiyi007/HttpRepeater/releases/download/v1.1.0/HttpRepeater-1.1.0-macos-universal.zip)
@@ -115,8 +129,15 @@ use Burp, ZAP, mitmproxy or other tools for interception, crawling, scanning and
 
 - **Replay a captured request.** Copy a request from DevTools, Burp or a log, paste it, tweak a
   header, cookie or body field, and send it again. The previous attempt stays in history.
-- **Turn curl into an editable request.** Paste `curl 'https://api.example.com/v1/login' ...` or
-  browser `fetch(...)` code. HttpRepeater fills in the target and gives you the raw request.
+- **Triage reported vulnerabilities.** A bug report or a pentest finding quotes the raw HTTP
+  request? Paste it as-is — no proxy, no re-capture — change a parameter and resend it to confirm
+  or dismiss the finding.
+- **Test what your tools hand you.** When a code audit, a scanner or the AI assistant produces a
+  raw request or payload, paste it and send it seconds later; per-tab history keeps every attempt
+  for comparison.
+- **Turn curl into an editable request — no proxy needed.** Nothing is being intercepted? Copy the
+  request from browser DevTools (**Copy as cURL** / **Copy as fetch**, bash or Windows `cmd`
+  flavour), paste it, and HttpRepeater fills in the target and gives you the raw request.
 - **Draft payloads with AI.** Ask the assistant to rewrite the request or produce a body, review the
   raw result, apply it to the editor and send it yourself.
 - **Turn an advisory into a verification request.** Paste the CVE/advisory context and ask for a raw
@@ -130,6 +151,9 @@ use Burp, ZAP, mitmproxy or other tools for interception, crawling, scanning and
   be applied to the editor and replayed; nothing is sent automatically. The same workflow works for
   a local Nacos-style auth-bypass check: *"Write a request to verify the Nacos unauthorized user
   query issue against http://127.0.0.1:8848."*
+- **Bootstrap multipart uploads.** Found a file-upload endpoint but hand-writing a multipart body
+  is error-prone? Start from the built-in **multipart upload** template and edit the parts and
+  boundary.
 - **Test through a proxy chain.** Enable the per-tab proxy and point it at Burp, Yakit, mitmproxy or
   Clash. HTTP requests use absolute-URL form; HTTPS requests use a CONNECT tunnel.
 - **Probe header handling.** Disable **Follow Host** to send the `Host` header exactly as written,
@@ -145,11 +169,6 @@ use Burp, ZAP, mitmproxy or other tools for interception, crawling, scanning and
 <p align="center">
   <img src="assets/screenshots/ai-poc-en.png" alt="AI turning an N-day advisory into a verification request" width="900"><br>
   <em>N-day advisory → a ready-to-send verification request</em>
-</p>
-
-<p align="center">
-  <img src="assets/screenshots/ai-payload-en.gif" alt="AI drafting an injection payload for the id parameter, applied and replayed" width="1000"><br>
-  <em>Injection testing → candidate payloads for the id parameter</em>
 </p>
 
 > Only use this tool against systems you own or have explicit permission to test.
@@ -299,10 +318,7 @@ Click **AI** next to **Import** to open the assistant. The request currently in 
 with every message, so you can ask for edits ("move the query parameters into a JSON body"), new
 payloads, or explanations. When a reply contains a complete raw request, **Apply to request**
 replaces the editor content with it — HttpRepeater never sends anything on the AI's behalf.
-
-<p align="center">
-  <img src="assets/screenshots/ai-request-en.gif" alt="AI assistant turning the request into a JSON POST, applied to the editor and sent" width="1000">
-</p>
+(The demos at the top of this README show the full loop.)
 
 The assistant talks to the LLM endpoint configured in Settings (OpenAI-compatible **Chat
 Completions** or **Responses** API). Conversation history lives in memory for the current app
