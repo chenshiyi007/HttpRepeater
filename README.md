@@ -109,6 +109,17 @@ use Burp, ZAP, mitmproxy or other tools for interception, crawling, scanning and
   browser `fetch(...)` code. HttpRepeater fills in the target and gives you the raw request.
 - **Draft payloads with AI.** Ask the assistant to rewrite the request or produce a body, review the
   raw result, apply it to the editor and send it yourself.
+- **Turn an advisory into a verification request.** Paste the CVE/advisory context and ask for a raw
+  HTTP request against your local reproduction, for example: *"Write a verification request for
+  CVE-2024-XXXX against http://127.0.0.1:8080 and return the complete HTTP/1.1 request."* The
+  assistant replies with a ready-to-send request; click **Apply to request**, review it, and send it
+  yourself.
+- **Craft injection payloads for a parameter.** Describe the endpoint and the parameter you want to
+  test: *"The endpoint is `GET /api/user?id=1`; help me test the `id` parameter for SQL injection in
+  my authorized lab and return several candidate payloads with the full requests."* Each reply can
+  be applied to the editor and replayed; nothing is sent automatically. The same workflow works for
+  a local Nacos-style auth-bypass check: *"Write a request to verify the Nacos unauthorized user
+  query issue against http://127.0.0.1:8848."*
 - **Test through a proxy chain.** Enable the per-tab proxy and point it at Burp, Yakit, mitmproxy or
   Clash. HTTP requests use absolute-URL form; HTTPS requests use a CONNECT tunnel.
 - **Probe header handling.** Disable **Follow Host** to send the `Host` header exactly as written,
