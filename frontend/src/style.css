@@ -1,0 +1,102 @@
+html,
+body,
+#app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+/* ---- 主题变量（深色默认，body[data-theme=light] 覆盖）---- */
+:root,
+body[data-theme='dark'] {
+  color-scheme: dark;
+  --app-bg: #101014;
+  --bar-bg: #16161a;
+  --tabbar-bg: #18181c;
+  --tab-bg: #1f1f24;
+  --input-bg: rgba(0, 0, 0, 0.4);
+  --border: rgba(255, 255, 255, 0.09);
+  --border-soft: rgba(255, 255, 255, 0.07);
+  --text-strong: rgba(255, 255, 255, 0.9);
+  --text-body: rgba(255, 255, 255, 0.82);
+  --text: rgba(255, 255, 255, 0.78);
+  --text-muted: rgba(255, 255, 255, 0.45);
+  --text-dim: rgba(255, 255, 255, 0.28);
+  --accent: #63e2b7;
+  --accent-soft: rgba(99, 226, 183, 0.85);
+  --accent-border: rgba(99, 226, 183, 0.35);
+  --error: #e88080;
+  --dirty: #f2c97d;
+  --hover-bg: rgba(255, 255, 255, 0.1);
+  --hover-bg-soft: rgba(255, 255, 255, 0.08);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.15);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);
+}
+
+body[data-theme='light'] {
+  color-scheme: light;
+  --app-bg: #ffffff;
+  --bar-bg: #f4f4f7;
+  --tabbar-bg: #ececf1;
+  --tab-bg: #e4e4ea;
+  --input-bg: #ffffff;
+  --border: rgba(0, 0, 0, 0.13);
+  --border-soft: rgba(0, 0, 0, 0.08);
+  --text-strong: rgba(0, 0, 0, 0.88);
+  --text-body: rgba(0, 0, 0, 0.8);
+  --text: rgba(0, 0, 0, 0.72);
+  --text-muted: rgba(0, 0, 0, 0.5);
+  --text-dim: rgba(0, 0, 0, 0.32);
+  --accent: #18a058;
+  --accent-soft: rgba(24, 160, 88, 0.9);
+  --accent-border: rgba(24, 160, 88, 0.45);
+  --error: #d03050;
+  --dirty: #c98500;
+  --hover-bg: rgba(0, 0, 0, 0.06);
+  --hover-bg-soft: rgba(0, 0, 0, 0.05);
+  --scrollbar-thumb: rgba(0, 0, 0, 0.18);
+  --scrollbar-thumb-hover: rgba(0, 0, 0, 0.3);
+}
+
+body {
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang SC',
+    'Hiragino Sans GB', 'Microsoft YaHei', sans-serif;
+  font-size: 13px;
+  background: var(--app-bg);
+  color: var(--text-body);
+  -webkit-font-smoothing: antialiased;
+  overflow: hidden;
+  user-select: none;
+  transition: background-color 0.15s ease, color 0.15s ease;
+}
+
+.mono {
+  font-family: 'SF Mono', Menlo, Monaco, Consolas, 'Courier New', monospace;
+}
+
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--scrollbar-thumb-hover);
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-corner {
+  background: transparent;
+}

@@ -1,0 +1,59 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <!-- HttpRepeater app icon: replay loop (dark squircle + mint arrows) -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="0.35" y2="1">
+      <stop offset="0" stop-color="#202634"/>
+      <stop offset="0.52" stop-color="#12161d"/>
+      <stop offset="1" stop-color="#07090c"/>
+    </linearGradient>
+    <linearGradient id="mark" gradientUnits="userSpaceOnUse" x1="260" y1="300" x2="780" y2="720">
+      <stop offset="0" stop-color="#c6ffe9"/>
+      <stop offset="0.4" stop-color="#63e2b7"/>
+      <stop offset="1" stop-color="#14ab88"/>
+    </linearGradient>
+    <radialGradient id="glow" cx="0.5" cy="0.5" r="0.5">
+      <stop offset="0" stop-color="#63e2b7" stop-opacity="0.22"/>
+      <stop offset="0.65" stop-color="#63e2b7" stop-opacity="0.04"/>
+      <stop offset="1" stop-color="#63e2b7" stop-opacity="0"/>
+    </radialGradient>
+    <radialGradient id="vignette" cx="0.5" cy="0.45" r="0.72">
+      <stop offset="0.55" stop-color="#000000" stop-opacity="0"/>
+      <stop offset="1" stop-color="#000000" stop-opacity="0.36"/>
+    </radialGradient>
+    <linearGradient id="rim" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#ffffff" stop-opacity="0.28"/>
+      <stop offset="0.45" stop-color="#ffffff" stop-opacity="0.06"/>
+      <stop offset="1" stop-color="#ffffff" stop-opacity="0.03"/>
+    </linearGradient>
+    <filter id="soft" x="-40%" y="-40%" width="180%" height="180%">
+      <feGaussianBlur stdDeviation="28"/>
+    </filter>
+    <filter id="drop" x="-30%" y="-30%" width="160%" height="160%">
+      <feDropShadow dx="0" dy="18" stdDeviation="26" flood-color="#000000" flood-opacity="0.6"/>
+    </filter>
+    <clipPath id="squircle"><rect x="100" y="100" width="824" height="824" rx="186"/></clipPath>
+  </defs>
+
+  <g clip-path="url(#squircle)">
+    <rect x="100" y="100" width="824" height="824" fill="url(#bg)"/>
+    <ellipse cx="512" cy="512" rx="470" ry="470" fill="url(#glow)"/>
+    <rect x="100" y="100" width="824" height="824" fill="url(#vignette)"/>
+  </g>
+
+  <g filter="url(#soft)" opacity="0.5" fill="none" stroke="url(#mark)" stroke-width="84" stroke-linecap="round">
+    <path d="M217.09 608.42 A 150 150 0 0 1 332 362 L 692 362"/><path d="M806.91 415.58 A 150 150 0 0 1 692 662 L 332 662"/>
+  </g>
+
+  <g filter="url(#drop)" opacity="0.65">
+    <path d="M217.09 608.42 A 150 150 0 0 1 332 362 L 692 362" fill="none" stroke="#000000" stroke-width="84" stroke-linecap="round"/>
+    <path d="M806.91 415.58 A 150 150 0 0 1 692 662 L 332 662" fill="none" stroke="#000000" stroke-width="84" stroke-linecap="round"/>
+    <path d="M692.00 440.00 L798.00 362.00 L692.00 284.00 Z" fill="#000000"/><path d="M332.00 584.00 L226.00 662.00 L332.00 740.00 Z" fill="#000000"/>
+  </g>
+
+  <path d="M217.09 608.42 A 150 150 0 0 1 332 362 L 692 362" fill="none" stroke="url(#mark)" stroke-width="84" stroke-linecap="round"/>
+  <path d="M806.91 415.58 A 150 150 0 0 1 692 662 L 332 662" fill="none" stroke="url(#mark)" stroke-width="84" stroke-linecap="round"/>
+  <path d="M692.00 440.00 L798.00 362.00 L692.00 284.00 Z" fill="url(#mark)" stroke="url(#mark)" stroke-width="14" stroke-linejoin="round"/>
+  <path d="M332.00 584.00 L226.00 662.00 L332.00 740.00 Z" fill="url(#mark)" stroke="url(#mark)" stroke-width="14" stroke-linejoin="round"/>
+
+  <rect x="101.5" y="101.5" width="821" height="821" rx="185" fill="none" stroke="url(#rim)" stroke-width="3"/>
+</svg>

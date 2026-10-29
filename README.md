@@ -1,0 +1,322 @@
+# HttpRepeater
+
+**English** · [简体中文](README.zh-CN.md)
+
+[![Go](https://img.shields.io/badge/Go-1.25+-00ADD8?logo=go&logoColor=white)](https://go.dev/)
+[![Wails](https://img.shields.io/badge/Wails-v2-DF1D1D)](https://wails.io/)
+[![Vue](https://img.shields.io/badge/Vue-3-42B883?logo=vuedotjs&logoColor=white)](https://vuejs.org/)
+[![Platforms](https://img.shields.io/badge/platform-macOS%20%7C%20Windows%20%7C%20Linux-lightgrey)](#build-from-source)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue.svg)](LICENSE)
+
+A focused, standalone desktop HTTP request replay tool inspired by **Burp Suite Repeater**.
+
+Edit a raw HTTP request, send it exactly as written, inspect the response, and keep a per-tab
+history of everything you sent — without launching a full interception proxy.
+
+<p align="center">
+  <img src="assets/screenshots/main-dark-en.png" alt="HttpRepeater main window" width="900">
+</p>
+
+Built with [Wails v2](https://wails.io/) (Go backend + system WebView), Vue 3, TypeScript,
+Naive UI and CodeMirror 6. No JVM, no browser extension.
+
+## Why another repeater?
+
+Burp Suite's Repeater is excellent, but it comes as part of a large interception suite. Sometimes
+you just want a small native window where you can paste a request, change a header, hit send, and
+look at the response — without starting a proxy, configuring a browser, or loading a JVM.
+
+HttpRepeater is that window. It deliberately does one thing: **the Repeater loop**.
+
+- **Raw request fidelity** — requests are written to a TCP/TLS socket by hand, so header order,
+  header case, duplicate headers and unusual bodies survive.
+- **Fast input** — paste a raw request, a bare URL, or `curl` / `fetch` code copied straight from
+  the browser's DevTools.
+- **Per-tab proxy chaining** — route a single tab through Burp, Yakit, mitmproxy or Clash with one
+  toggle. The default proxy is `http://127.0.0.1:7890`; change it per tab.
+- **Per-tab history** — every send is recorded, including failures; jump back to a snapshot, edit
+  and resend.
+- **Small footprint** — one native app, no Java runtime.
+
+## Features
+
+- Raw HTTP/1.x request editor with HTTP syntax highlighting, line numbers and search (⌘F / Ctrl+F).
+- Multi-tab workspace. Each tab keeps its own request, target, proxy settings and history.
+- HTTP and HTTPS. Responses are decoded from `gzip`, `deflate` and `br`, and shown as
+  **Pretty** (formatted JSON, status line and headers) or **Raw**.
+- Request history with `‹ n/N ›` navigation and a dropdown list (status code and duration).
+  Loading a snapshot restores the exact request text; unsent edits trigger a confirmation.
+- Downstream HTTP proxy per tab, including `user:pass` Basic authentication:
+  - `http://` targets use the absolute-URL request form;
+  - `https://` targets use a `CONNECT` tunnel.
+- `curl` / `fetch` import, including Chrome DevTools' **Copy as cURL** / **Copy as fetch**.
+  Paste the snippet and it is converted automatically; **Import** reads the clipboard.
+- Built-in request templates: GET, POST form, POST JSON, multipart upload, empty `Host`, clear.
+- **Follow Host** and **Auto CL** toggles:
+  - Follow Host rewrites `Host` to match the target (on by default);
+  - Auto CL recalculates `Content-Length` when a body is present (on by default).
+  Turn both off to test Host validation or length-handling edge cases.
+- Dark / light theme and English / Chinese UI. The choice is stored in `localStorage`.
+- Keyboard-first: send, new tab, close tab, editor search.
+
+## Compared with Burp Suite Repeater
+
+| Capability | Burp Suite Repeater | HttpRepeater |
+| --- | --- | --- |
+| Edit and resend raw HTTP requests | Yes | Yes |
+| Per-tab request history and snapshots | Yes | Yes |
+| Multiple tabs | Yes | Yes |
+| Host header follow / Content-Length recalculation | Yes | Yes, as explicit toggles |
+| gzip / deflate / br response decoding | Yes | Yes |
+| HTTP/HTTPS with a proxy chain | Yes, via Burp's proxy | Yes, per-tab downstream proxy |
+| curl / fetch import | Not built in | Built in |
+| Intercepting proxy, site map, scanner, Intruder | Part of Burp Suite | Not included |
+| Extensions, macros, auth/session handling | Yes | Not included |
+| Session persistence | Yes | In-memory only |
+| Runtime | Java | Native Go + system WebView |
+
+HttpRepeater is **not** a Burp Suite replacement. It intentionally covers only the Repeater loop;
+use Burp, ZAP, mitmproxy or other tools for interception, crawling, scanning and automation.
+
+## Use cases
+
+- **Replay a captured request.** Copy a request from DevTools, Burp or a log, paste it, tweak a
+  header, cookie or body field, and send it again. The previous attempt stays in history.
+- **Turn curl into an editable request.** Paste `curl 'https://api.example.com/v1/login' ...` or
+  browser `fetch(...)` code. HttpRepeater fills in the target and gives you the raw request.
+- **Test through a proxy chain.** Enable the per-tab proxy and point it at Burp, Yakit, mitmproxy or
+  Clash. HTTP requests use absolute-URL form; HTTPS requests use a CONNECT tunnel.
+- **Probe header handling.** Disable **Follow Host** to send the `Host` header exactly as written,
+  or **Auto CL** to send your own `Content-Length` — useful for Host validation and length-handling
+  experiments on systems you are authorized to test.
+- **Debug several endpoints at once.** Keep one tab per endpoint, each with its own history and
+  proxy setting.
+- **Compare responses over time.** Change one parameter, resend, and page through the history to
+  compare status codes, headers and bodies.
+
+> Only use this tool against systems you own or have explicit permission to test.
+
+## Build from source
+
+### Prerequisites
+
+| Dependency | Version |
+| --- | --- |
+| Go | 1.25+ |
+| Node.js | 20.19+ (or 22.12+) |
+| Wails CLI | v2.17+ |
+| Platform toolchain | macOS: Xcode Command Line Tools · Windows: WebView2 · Linux: GTK3 + WebKit2GTK |
+
+See the [Wails installation guide](https://wails.io/docs/gettingstarted/installation) for your
+platform's packages.
+
+```bash
+# Clone the repository
+git clone https://github.com/chenshiyi007/HttpRepeater.git
+cd HttpRepeater
+
+# Install the Wails CLI
+go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+# Build
+wails dev      # hot-reload development
+wails build    # release build, output in build/bin/
+```
+
+For a build whose header shows the git-derived version, use `make build` instead; see
+[Versioning and releases](#versioning-and-releases).
+
+Frontend-only development (no Wails backend calls, useful for UI work):
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+## Usage
+
+### 1. Set a target
+
+Enter the scheme, host and port in the target bar, or paste a request and let HttpRepeater parse it.
+Click **Parse** to re-read the target from the request line / `Host` header. A bare URL is converted
+into a `GET` request skeleton.
+
+### 2. Edit the request
+
+The editor works on raw HTTP: request line, headers, blank line, body. Use **Templates** for common
+shapes, or **Import** to pull a `curl` / `fetch` snippet from the clipboard. Press **Send** (or
+⌘Enter / Ctrl+Enter) when ready.
+
+<p align="center">
+  <img src="assets/screenshots/templates-en.png" alt="Request templates and raw editor" width="900">
+</p>
+
+### 3. Inspect the response
+
+The response pane shows the status line, raw headers and the decoded body. Switch between **Pretty**
+and **Raw** in the header; JSON bodies are indented in Pretty mode. The status area shows the status
+line, elapsed time and transferred bytes.
+
+### 4. Move through history
+
+Every send creates a history entry — failures included. Use `‹ n/N ›` to step through entries or
+click the number to open a list with status code and duration. Loading a snapshot puts the exact
+request text back into the editor; if you have unsent edits, HttpRepeater asks before overwriting them.
+
+<p align="center">
+  <img src="assets/screenshots/history-en.png" alt="Per-tab request history" width="900">
+</p>
+
+### 5. Work with tabs
+
+`+` creates a tab; double-click a tab to rename it. Each tab is an independent workspace: request,
+target, proxy state, Host/CL toggles and history. At least one tab always remains open.
+
+### 6. Send through a downstream proxy
+
+Click the proxy button to toggle it for the current tab, then open the gear to edit the URL. The
+default is `http://127.0.0.1:7890`. Credentials can be embedded as `user:pass`:
+
+```
+http://user:pass@127.0.0.1:7890
+```
+
+HTTPS targets automatically use a `CONNECT` tunnel. The setting applies to the next send and is
+remembered per tab while the app is running.
+
+<p align="center">
+  <img src="assets/screenshots/proxy-en.png" alt="Per-tab downstream proxy settings" width="900">
+</p>
+
+### 7. Import curl / fetch
+
+The fastest path from a browser request: open DevTools → **Network**, right-click the request, and
+choose **Copy as cURL** or **Copy as fetch**. Paste the copied text into the request editor —
+HttpRepeater detects the format, converts it into an editable raw request, and fills in the target.
+
+<p align="center">
+  <img src="assets/screenshots/web-tools.png" alt="Copy as cURL / Copy as fetch in Chrome DevTools" width="620">
+</p>
+
+You can also paste a hand-written curl command or `fetch()` call; the **Import** button reads the
+clipboard for you.
+
+Supported curl options include `-X/--request`, `-H/--header`, `-d/--data*`, `--json`,
+`-u/--user`, `-b/--cookie`, `-A/--user-agent`, `-e/--referer`, `-I/--head` and `--compressed`.
+`-F`/`-T` (multipart / file upload) are not supported; use `-d` for the body or edit the request
+manually. For `fetch()`, the URL, method, literal headers and body are imported; headers the browser
+adds automatically (cookies, authorization, etc.) are not present and are reported as warnings.
+
+### 8. Theme and language
+
+The sun/moon button toggles dark and light themes. The `EN` / `中` button switches the interface
+language. Both choices are stored locally and restored on the next launch.
+
+## Keyboard shortcuts
+
+| Shortcut | Action |
+| --- | --- |
+| `⌘Enter` / `Ctrl+Enter` | Send the current request |
+| `⌘T` / `Ctrl+T` | New tab |
+| `⌘W` / `Ctrl+W` | Close the current tab |
+| `⌘F` / `Ctrl+F` | Search in the request editor |
+
+## Design notes
+
+- **Raw sending.** Requests are assembled and written directly to a `net.Conn` / `tls.Conn`; the
+  standard `net/http` request serializer is not used, because it normalizes header names, drops
+  duplicate headers and adds defaults. `net/http` is only used for chunked-response parsing.
+- **Response decoding.** Bodies are read according to `Content-Length`, `Transfer-Encoding: chunked`
+  or connection-close, then decoded in reverse order for `gzip`, `deflate` and `br`.
+- **Limits.** Request 10 MB, response headers 1 MB, response body 64 MB.
+- **State.** Tabs, history, proxy settings and request text live in memory. Only the theme and
+  language preferences are persisted (in `localStorage`).
+
+## Scope and limitations
+
+HttpRepeater intentionally stops at the Repeater loop. It does **not** include:
+
+- an intercepting proxy, site map, crawler, scanner or Intruder;
+- persistent projects or saved request collections;
+- LLM assistance, scripting hooks, Nuclei templates or report export;
+- automatic redirect following, a cookie jar, or auth/session handling;
+- HTTP/2, response search or a hex view.
+
+If you need those, use Burp Suite, ZAP, mitmproxy, Yakit or another tool alongside HttpRepeater.
+
+## Security notes
+
+- TLS certificate verification is **disabled** so that self-signed test targets work. Do not use
+  HttpRepeater for sensitive production traffic without understanding this.
+- Proxy credentials remain in memory and are sent only to the configured proxy.
+- Requests are sent as edited, apart from the optional `Host` / `Content-Length` rewrites described
+  above; you are responsible for what you send.
+
+**Use this tool only against systems you own or have explicit permission to test.**
+
+## Development
+
+```bash
+# Go tests
+go test ./...
+
+# Frontend type-check and build
+cd frontend && npm run build
+
+# Package the desktop app
+wails build
+```
+
+### Versioning and releases
+
+The version badge in the header is injected at build time. `make build` and `make dev` derive it
+from `git describe --tags --dirty`; when no tag is reachable it falls back to `dev+<commit>`, and
+when there is no git metadata at all the badge is hidden. `0.0.0` is never shown.
+
+To publish a GitHub release (requires a clean working tree, an `origin` remote and an authenticated
+[`gh`](https://cli.github.com/) CLI):
+
+```bash
+gh auth login
+make notes VERSION=v0.2.0        # generate build/release/notes.md
+$EDITOR build/release/notes.md   # optional: edit the release notes
+make release VERSION=v0.2.0      # build, package, tag and publish
+```
+
+`make release` builds and packages the current platform, creates and pushes the `v0.2.0` tag, and
+publishes the archive with the notes. For additional platforms, build and package them first, then
+upload the resulting archives to the same release:
+
+```bash
+make build-release VERSION=v0.2.0 PLATFORM=windows/amd64
+make package-assets VERSION=v0.2.0 PLATFORM=windows/amd64
+make publish VERSION=v0.2.0
+```
+
+Use `PLATFORM=darwin/universal` for a universal macOS build. Linux packages must be built on Linux
+(or in a Linux container). Run `make help` for all targets.
+
+### Project layout
+
+| Path | Contents |
+| --- | --- |
+| `main.go`, `app.go` | Wails application entry point |
+| `internal/repeater/` | Request parsing, raw socket sending, proxy, response decoding, i18n |
+| `frontend/src/` | Vue 3 UI, components, Pinia stores, editor and i18n messages |
+| `build/` | App icons and platform packaging assets |
+| `assets/screenshots/` | Images used in the README |
+| `Makefile` | Build, packaging and GitHub release targets |
+| `scripts/` | Release notes and `wails.json` version helpers |
+
+## License
+
+Licensed under the [Apache License, Version 2.0](LICENSE).
+
+## Acknowledgements
+
+- [Wails](https://wails.io/) — desktop shell
+- [Naive UI](https://www.naiveui.com/) — Vue 3 component library
+- [CodeMirror](https://codemirror.net/) — request editor
+- [Ionicons](https://ionic.io/ionicons) — interface icons (via `@vicons/ionicons5`)
+- Burp Suite Repeater — the workflow this tool is modelled on

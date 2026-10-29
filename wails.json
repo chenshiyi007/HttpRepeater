@@ -1,0 +1,19 @@
+{
+  "$schema": "https://wails.io/schemas/config.v2.json",
+  "name": "httpRepeater",
+  "outputfilename": "httpRepeater",
+  "frontend:install": "npm install",
+  "frontend:build": "npm run build",
+  "frontend:dev:watcher": "npm run dev",
+  "frontend:dev:serverUrl": "auto",
+  "author": {
+    "name": "chenshiyi007",
+    "email": "chenshiyi007@users.noreply.github.com"
+  },
+  "info": {
+    "productName": "HttpRepeater",
+    "productVersion": "0.1.0",
+    "comments": "Desktop HTTP request replay tool (Burp Repeater style)",
+    "copyright": "Copyright © 2026"
+  }
+}

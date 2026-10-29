@@ -1,0 +1,8 @@
+build/bin
+build/release
+.wails.json.bak
+node_modules
+frontend/dist
+frontend/package.json.md5
+.idea/
+.DS_Store
