@@ -12,7 +12,7 @@
   },
   "info": {
     "productName": "HttpRepeater",
-    "productVersion": "0.1.0",
+    "productVersion": "1.2.0",
     "comments": "Desktop HTTP request replay tool (Burp Repeater style)",
     "copyright": "Copyright © 2026"
   }

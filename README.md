@@ -34,8 +34,8 @@ sent automatically.
 
 ## Download
 
-- [macOS (universal)](https://github.com/chenshiyi007/HttpRepeater/releases/download/v1.1.0/HttpRepeater-1.1.0-macos-universal.zip)
-- [Windows (amd64)](https://github.com/chenshiyi007/HttpRepeater/releases/download/v1.1.0/HttpRepeater-1.1.0-windows-amd64.zip)
+- [macOS (universal)](https://github.com/chenshiyi007/HttpRepeater/releases/download/v1.2.0/HttpRepeater-1.2.0-macos-universal.zip)
+- [Windows (amd64)](https://github.com/chenshiyi007/HttpRepeater/releases/download/v1.2.0/HttpRepeater-1.2.0-windows-amd64.zip)
 - [All releases](https://github.com/chenshiyi007/HttpRepeater/releases)
 
 The builds are unsigned. On macOS, right-click the app and choose **Open** the first time, or allow

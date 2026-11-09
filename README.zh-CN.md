@@ -32,8 +32,8 @@
 
 ## 下载
 
-- [macOS（通用包）](https://github.com/chenshiyi007/HttpRepeater/releases/download/v1.1.0/HttpRepeater-1.1.0-macos-universal.zip)
-- [Windows（amd64）](https://github.com/chenshiyi007/HttpRepeater/releases/download/v1.1.0/HttpRepeater-1.1.0-windows-amd64.zip)
+- [macOS（通用包）](https://github.com/chenshiyi007/HttpRepeater/releases/download/v1.2.0/HttpRepeater-1.2.0-macos-universal.zip)
+- [Windows（amd64）](https://github.com/chenshiyi007/HttpRepeater/releases/download/v1.2.0/HttpRepeater-1.2.0-windows-amd64.zip)
 - [所有版本](https://github.com/chenshiyi007/HttpRepeater/releases)
 
 安装包未签名。macOS 首次打开请右键选择「打开」，或在「系统设置 → 隐私与安全性」中允许；

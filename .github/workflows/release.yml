@@ -1,0 +1,146 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      version:
+        description: 'Semver (e.g. 1.2.0), only for manual runs without a tag'
+        required: true
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    name: Build (${{ matrix.label }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - os: macos-latest
+            platform: darwin/universal
+            label: macos-universal
+            pack: macos
+          - os: windows-latest
+            platform: windows/amd64
+            label: windows-amd64
+            pack: windows
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-go@v5
+        with:
+          go-version-file: go.mod
+          cache: true
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      - name: Resolve version
+        id: ver
+        shell: bash
+        run: |
+          if [ "${{ github.ref_type }}" = tag ]; then
+            tag="${GITHUB_REF_NAME}"
+          else
+            tag="v${{ inputs.version }}"
+          fi
+          num="${tag#v}"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "num=$num" >> "$GITHUB_OUTPUT"
+          echo "display=$tag" >> "$GITHUB_OUTPUT"
+
+      - name: Install Wails
+        run: go install github.com/wailsapp/wails/v2/cmd/wails@latest
+
+      - name: Set wails productVersion
+        run: node scripts/wails-version.mjs set "${{ steps.ver.outputs.num }}"
+
+      - name: Wails build
+        shell: bash
+        env:
+          VITE_APP_VERSION: ${{ steps.ver.outputs.display }}
+          VITE_APP_COMMIT: ${{ github.sha }}
+        run: |
+          export VITE_APP_BUILD_DATE="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+          wails build -platform ${{ matrix.platform }}
+
+      - name: Package (macOS)
+        if: matrix.pack == 'macos'
+        shell: bash
+        run: |
+          mkdir -p build/release
+          ditto -c -k --norsrc --keepParent \
+            "build/bin/httpRepeater.app" \
+            "build/release/HttpRepeater-${{ steps.ver.outputs.num }}-macos-universal.zip"
+
+      - name: Package (Windows)
+        if: matrix.pack == 'windows'
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force -Path build/release | Out-Null
+          Compress-Archive -Path build/bin/httpRepeater.exe -DestinationPath "build/release/HttpRepeater-${{ steps.ver.outputs.num }}-windows-amd64.zip" -Force
+
+      - name: Restore wails.json
+        if: always()
+        run: node scripts/wails-version.mjs restore
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: HttpRepeater-${{ steps.ver.outputs.num }}-${{ matrix.label }}
+          path: build/release/*.zip
+
+  publish:
+    name: GitHub Release
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Resolve version
+        id: ver
+        shell: bash
+        run: |
+          if [ "${{ github.ref_type }}" = tag ]; then
+            tag="${GITHUB_REF_NAME}"
+          else
+            tag="v${{ inputs.version }}"
+          fi
+          num="${tag#v}"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "num=$num" >> "$GITHUB_OUTPUT"
+
+      - name: Generate release notes
+        shell: bash
+        run: bash scripts/release-notes.sh "${{ steps.ver.outputs.tag }}" build/release/notes.md
+
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: HttpRepeater-${{ steps.ver.outputs.num }}-*
+          path: dist
+          merge-multiple: true
+
+      - name: Create GitHub Release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          shopt -s nullglob
+          assets=(dist/*.zip)
+          if [ ${#assets[@]} -eq 0 ]; then
+            echo "no zip artifacts" >&2
+            exit 1
+          fi
+          gh release view "${{ steps.ver.outputs.tag }}" >/dev/null 2>&1 && \
+            gh release upload "${{ steps.ver.outputs.tag }}" "${assets[@]}" --clobber && \
+            gh release edit "${{ steps.ver.outputs.tag }}" --title "HttpRepeater ${{ steps.ver.outputs.tag }}" --notes-file build/release/notes.md || \
+            gh release create "${{ steps.ver.outputs.tag }}" "${assets[@]}" --title "HttpRepeater ${{ steps.ver.outputs.tag }}" --notes-file build/release/notes.md
