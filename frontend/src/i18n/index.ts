@@ -71,7 +71,12 @@ const zh = {
 
   'time.title': '北京时间',
   'time.zone': 'Asia/Shanghai',
+  'time.sourceHint': '在线嵌入 beijing-time.org',
+  'time.nowCaption': '现在北京时间',
+  'time.zoneDetail': 'UTC+8 · 东八区（中国标准时间）',
   'time.loadFailed': '无法加载，请检查网络',
+  'time.retry': '重试',
+  'time.openWeb': '在浏览器打开 beijing-time.org',
 
   'settings.title': '设置',
   'settings.sectionGeneral': '外观与语言',
@@ -265,7 +270,12 @@ const en: Record<MessageKey, string> = {
 
   'time.title': 'Beijing time',
   'time.zone': 'Asia/Shanghai',
+  'time.sourceHint': 'Embedded page from beijing-time.org',
+  'time.nowCaption': 'Current Beijing time',
+  'time.zoneDetail': 'UTC+8 · China Standard Time',
   'time.loadFailed': 'Failed to load. Check your network.',
+  'time.retry': 'Retry',
+  'time.openWeb': 'Open beijing-time.org in browser',
 
   'settings.title': 'Settings',
   'settings.sectionGeneral': 'Appearance & Language',

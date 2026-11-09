@@ -1,10 +1,12 @@
 const TZ = 'Asia/Shanghai'
 
-export function formatBeijingNow(date = new Date()): {
+export interface BeijingClock {
   time: string
-  date: string
+  dateLine: string
   weekday: string
-} {
+}
+
+export function formatBeijingNow(date = new Date()): BeijingClock {
   const time = new Intl.DateTimeFormat('zh-CN', {
     timeZone: TZ,
     hour: '2-digit',
@@ -13,17 +15,23 @@ export function formatBeijingNow(date = new Date()): {
     hour12: false,
   }).format(date)
 
-  const dateStr = new Intl.DateTimeFormat('zh-CN', {
-    timeZone: TZ,
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  }).format(date)
+  const parts = Object.fromEntries(
+    new Intl.DateTimeFormat('zh-CN', {
+      timeZone: TZ,
+      year: 'numeric',
+      month: 'numeric',
+      day: 'numeric',
+      weekday: 'long',
+    })
+      .formatToParts(date)
+      .map((p) => [p.type, p.value]),
+  )
 
-  const weekday = new Intl.DateTimeFormat('zh-CN', {
-    timeZone: TZ,
-    weekday: 'long',
-  }).format(date)
+  const y = parts.year ?? ''
+  const m = parts.month ?? ''
+  const d = parts.day ?? ''
+  const weekday = parts.weekday ?? ''
+  const dateLine = `${y}年${m}月${d}日 ${weekday}`
 
-  return { time, date: dateStr, weekday }
+  return { time, dateLine, weekday }
 }

@@ -1,12 +1,13 @@
 <script lang="ts" setup>
 import { onBeforeUnmount, onMounted, ref } from 'vue'
-import { NAlert } from 'naive-ui'
+import { NAlert, NButton } from 'naive-ui'
+import { BrowserOpenURL } from '../../../wailsjs/runtime/runtime'
 import { t } from '../../i18n'
 import { formatBeijingNow } from '../../utils/beijingTime'
 
-/** 优先尝试嵌入的北京时间页面；失败则回退本地时钟 */
-const TIME_IFRAME_URL = 'https://time.is/zh/Beijing'
-const LOAD_TIMEOUT_MS = 8000
+/** 嵌入 beijing-time.org；失败时回退本地时钟卡片 */
+const TIME_IFRAME_URL = 'https://www.beijing-time.org/'
+const LOAD_TIMEOUT_MS = 12000
 
 const useFallback = ref(false)
 const clock = ref(formatBeijingNow())
@@ -41,10 +42,25 @@ function onIframeError() {
   failToFallback()
 }
 
+function retryIframe() {
+  if (tickTimer) {
+    clearInterval(tickTimer)
+    tickTimer = undefined
+  }
+  useFallback.value = false
+  loadTimer = setTimeout(() => failToFallback(), LOAD_TIMEOUT_MS)
+}
+
+function openSource() {
+  try {
+    BrowserOpenURL(TIME_IFRAME_URL)
+  } catch {
+    window.open(TIME_IFRAME_URL, '_blank', 'noopener,noreferrer')
+  }
+}
+
 onMounted(() => {
-  loadTimer = setTimeout(() => {
-    failToFallback()
-  }, LOAD_TIMEOUT_MS)
+  loadTimer = setTimeout(() => failToFallback(), LOAD_TIMEOUT_MS)
 })
 
 onBeforeUnmount(() => {
@@ -57,32 +73,34 @@ onBeforeUnmount(() => {
   <div class="time-panel">
     <div class="time-head">
       <span class="time-title">{{ t('time.title') }}</span>
-      <span class="time-sub mono">{{ t('time.zone') }}</span>
+      <span class="time-sub">{{ t('time.sourceHint') }}</span>
     </div>
 
-    <n-alert
-      v-if="useFallback"
-      type="warning"
-      :bordered="false"
-      class="time-alert"
-    >
-      {{ t('time.loadFailed') }}
+    <n-alert v-if="useFallback" type="warning" :bordered="false" class="time-alert">
+      <div class="alert-inner">
+        <span>{{ t('time.loadFailed') }}</span>
+        <n-button size="tiny" tertiary @click="retryIframe">{{ t('time.retry') }}</n-button>
+      </div>
     </n-alert>
 
     <iframe
       v-if="!useFallback"
       class="time-iframe"
       :src="TIME_IFRAME_URL"
-      title="Beijing time"
+      title="beijing-time.org"
       referrerpolicy="no-referrer"
       @load="onIframeLoad"
       @error="onIframeError"
     />
 
     <div v-else class="time-local">
-      <div class="time-display mono">{{ clock.time }}</div>
-      <div class="time-date">{{ clock.date }}</div>
-      <div class="time-weekday">{{ clock.weekday }}</div>
+      <p class="card-caption">{{ t('time.nowCaption') }}</p>
+      <div class="card">
+        <p class="card-date">{{ clock.dateLine }}</p>
+        <p class="card-time mono">{{ clock.time }}</p>
+        <p class="card-zone">{{ t('time.zoneDetail') }}</p>
+      </div>
+      <n-button text size="tiny" class="open-link" @click="openSource">{{ t('time.openWeb') }}</n-button>
     </div>
   </div>
 </template>
@@ -110,51 +128,83 @@ onBeforeUnmount(() => {
 }
 
 .time-sub {
-  font-size: 11px;
+  font-size: 10.5px;
   color: var(--text-dim);
+  line-height: 1.4;
 }
 
 .time-alert {
   flex: none;
 }
 
+.alert-inner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
 .time-iframe {
   flex: 1;
-  min-height: 200px;
+  min-height: 220px;
   width: 100%;
   border: 1px solid var(--border-soft);
   border-radius: 8px;
-  background: var(--input-bg);
+  background: #f2f2f2;
 }
 
 .time-local {
   flex: 1;
   display: flex;
   flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  padding: 24px 12px;
-  border: 1px solid var(--border-soft);
-  border-radius: 8px;
-  background: var(--input-bg);
+  align-items: stretch;
+  gap: 10px;
+  min-height: 0;
+  overflow-y: auto;
+}
+
+.card-caption {
+  margin: 0;
+  text-align: center;
+  font-size: 14px;
+  font-weight: 700;
+  color: #2f86d8;
+}
+
+.card {
+  padding: 14px 12px 16px;
+  border-radius: 6px;
+  background: #fff;
+  border: 1px solid #d9d9d9;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
   text-align: center;
 }
 
-.time-display {
-  font-size: 36px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
+.card-date {
+  margin: 0 0 10px;
+  font-size: 13px;
+  color: #333;
+}
+
+.card-time {
+  margin: 0;
+  font-size: 42px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #f3a22a;
+  line-height: 1.1;
+}
+
+.card-zone {
+  margin: 12px 0 0;
+  font-size: 11px;
+  color: #666;
+  line-height: 1.5;
+}
+
+.open-link {
+  align-self: center;
   color: var(--accent-soft);
-}
-
-.time-date {
-  font-size: 14px;
-  color: var(--text-body);
-}
-
-.time-weekday {
-  font-size: 12px;
-  color: var(--text-muted);
 }
 </style>
