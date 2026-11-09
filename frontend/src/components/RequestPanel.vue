@@ -1,15 +1,15 @@
 <script lang="ts" setup>
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
-import { NButton, NDropdown, NIcon, useMessage } from 'naive-ui'
+import { NButton, NDropdown, NIcon, NSwitch, useMessage } from 'naive-ui'
 import type { DropdownDividerOption, DropdownOption } from 'naive-ui'
 import {
-  ChatbubbleEllipsesOutline,
   ChevronDownOutline,
   DocumentTextOutline,
   DownloadOutline,
 } from '@vicons/ionicons5'
 import { ClipboardGetText } from '../../wailsjs/runtime/runtime'
 import { useTabsStore } from '../stores/tabs'
+import { useSettingsStore } from '../stores/settings'
 import { useUiStore } from '../stores/ui'
 import { builtinTemplates } from '../utils/templates'
 import {
@@ -28,6 +28,7 @@ import HistoryNav from './HistoryNav.vue'
 const emit = defineEmits<{ (e: 'send'): void }>()
 
 const store = useTabsStore()
+const settings = useSettingsStore()
 const ui = useUiStore()
 const message = useMessage()
 const showDropdown = ref(false)
@@ -135,6 +136,7 @@ async function onPaste(fullText: string) {
 const ctxShow = ref(false)
 const ctxX = ref(0)
 const ctxY = ref(0)
+const ctxSelection = ref('')
 
 const ctxMethod = computed(() => {
   const text = store.activeTab?.requestText.trim() ?? ''
@@ -149,6 +151,11 @@ const ctxOptions = computed<Array<DropdownOption | DropdownDividerOption>>(() =>
   return [
     { label: t('ctx.copyUrl'), key: 'copy-url', disabled: !ctxHasRequest.value },
     { label: t('ctx.copyCurl'), key: 'copy-curl', disabled: !ctxHasRequest.value },
+    {
+      label: t('ctx.sendDecoder'),
+      key: 'send-decoder',
+      disabled: !ctxSelection.value.trim(),
+    },
     { type: 'divider', key: 'ctx-divider' },
     {
       label:
@@ -163,9 +170,10 @@ const ctxOptions = computed<Array<DropdownOption | DropdownDividerOption>>(() =>
   ]
 })
 
-function onContextMenu(pos: { x: number; y: number }) {
+function onContextMenu(pos: { x: number; y: number; selection: string }) {
   ctxX.value = pos.x
   ctxY.value = pos.y
+  ctxSelection.value = pos.selection
   ctxShow.value = true
 }
 
@@ -215,6 +223,15 @@ function currentToolInput(): RequestToolInput | null {
 
 async function onContextSelect(key: string | number) {
   ctxShow.value = false
+  if (key === 'send-decoder') {
+    const text = ctxSelection.value.trim()
+    if (!text) {
+      message.warning(t('ctx.noSelection'))
+      return
+    }
+    ui.sendToDecoder(text)
+    return
+  }
   const input = currentToolInput()
   if (!input) return
   try {
@@ -278,20 +295,16 @@ async function onContextSelect(key: string | number) {
         {{ t('request.import') }}
       </n-button>
 
-      <n-button
-        size="tiny"
-        quaternary
-        class="tpl-btn"
-        :title="t('request.aiTitle')"
-        @click="ui.openAi()"
-      >
-        <template #icon>
-          <n-icon :component="ChatbubbleEllipsesOutline" />
-        </template>
-        {{ t('request.ai') }}
-      </n-button>
-
       <div class="header-spacer"></div>
+
+      <label class="wrap-toggle" :title="t('editor.wordWrapTitle')">
+        <n-switch
+          size="small"
+          :value="settings.wordWrap"
+          @update:value="(v: boolean) => settings.setWordWrap(v)"
+        />
+        <span class="wrap-toggle-label">{{ t('editor.wordWrap') }}</span>
+      </label>
 
       <HistoryNav />
     </div>
@@ -350,6 +363,20 @@ async function onContextSelect(key: string | number) {
 
 .header-spacer {
   flex: 1;
+}
+
+.wrap-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  flex: none;
+}
+
+.wrap-toggle-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
 }
 
 .panel-body {

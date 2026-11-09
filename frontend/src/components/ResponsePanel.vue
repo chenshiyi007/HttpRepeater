@@ -1,8 +1,11 @@
 <script lang="ts" setup>
-import { computed, nextTick, ref, watch } from 'vue'
-import { NButton, NIcon, NInput, NRadioButton, NRadioGroup } from 'naive-ui'
+import { computed, nextTick, onBeforeUnmount, ref, watch } from 'vue'
+import { NButton, NDropdown, NIcon, NInput, NRadioButton, NRadioGroup, NSwitch, useMessage } from 'naive-ui'
+import type { DropdownOption } from 'naive-ui'
 import { ChevronDownOutline, ChevronUpOutline, SearchOutline } from '@vicons/ionicons5'
 import { useTabsStore } from '../stores/tabs'
+import { useSettingsStore } from '../stores/settings'
+import { useUiStore } from '../stores/ui'
 import HistoryNav from './HistoryNav.vue'
 import { t } from '../i18n'
 
@@ -14,6 +17,9 @@ interface MatchRange {
 }
 
 const store = useTabsStore()
+const settings = useSettingsStore()
+const ui = useUiStore()
+const message = useMessage()
 const mode = ref<'pretty' | 'raw'>('pretty')
 const searchQuery = ref('')
 const activeMatch = ref(0)
@@ -183,6 +189,71 @@ watch(
     if (activeMatch.value >= total) activeMatch.value = 0
   },
 )
+
+const ctxShow = ref(false)
+const ctxX = ref(0)
+const ctxY = ref(0)
+const ctxSelection = ref('')
+
+const ctxOptions = computed<DropdownOption[]>(() => [
+  {
+    label: t('ctx.sendDecoder'),
+    key: 'send-decoder',
+    disabled: !ctxSelection.value.trim(),
+  },
+])
+
+function onResponseContextMenu(event: MouseEvent) {
+  event.preventDefault()
+  event.stopPropagation()
+  const sel = window.getSelection()?.toString() ?? ''
+  ctxSelection.value = sel
+  ctxX.value = event.clientX
+  ctxY.value = event.clientY
+  ctxShow.value = true
+}
+
+function onDocumentPointerDown(event: PointerEvent) {
+  for (const node of event.composedPath()) {
+    if (
+      node instanceof HTMLElement &&
+      (node.classList.contains('resp-ctx-menu') || node.classList.contains('n-dropdown-menu'))
+    ) {
+      return
+    }
+  }
+  ctxShow.value = false
+}
+
+function onDocumentKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape') ctxShow.value = false
+}
+
+watch(ctxShow, (show) => {
+  if (show) {
+    document.addEventListener('pointerdown', onDocumentPointerDown, true)
+    document.addEventListener('keydown', onDocumentKeydown, true)
+  } else {
+    document.removeEventListener('pointerdown', onDocumentPointerDown, true)
+    document.removeEventListener('keydown', onDocumentKeydown, true)
+  }
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('pointerdown', onDocumentPointerDown, true)
+  document.removeEventListener('keydown', onDocumentKeydown, true)
+})
+
+function onContextSelect(key: string | number) {
+  ctxShow.value = false
+  if (key !== 'send-decoder') return
+  const text = ctxSelection.value.trim()
+  if (!text) {
+    message.warning(t('ctx.noSelection'))
+    return
+  }
+  ui.sendToDecoder(text)
+}
 </script>
 
 <template>
@@ -191,6 +262,15 @@ watch(
       <span class="panel-title">{{ t('response.title') }}</span>
 
       <HistoryNav />
+
+      <label class="wrap-toggle" :title="t('editor.wordWrapTitle')">
+        <n-switch
+          size="small"
+          :value="settings.wordWrap"
+          @update:value="(v: boolean) => settings.setWordWrap(v)"
+        />
+        <span class="wrap-toggle-label">{{ t('editor.wordWrap') }}</span>
+      </label>
 
       <template v-if="response">
         <n-radio-group v-model:value="mode" size="small">
@@ -250,10 +330,22 @@ watch(
         v-else
         ref="preRef"
         class="response-pre mono"
-        :class="{ 'error-text': response.error }"
+        :class="{ 'error-text': response.error, 'response-pre--wrap': settings.wordWrap }"
         v-html="highlightedHtml"
+        @contextmenu="onResponseContextMenu"
       ></pre>
     </div>
+
+    <n-dropdown
+      trigger="manual"
+      placement="bottom-start"
+      class="resp-ctx-menu"
+      :show="ctxShow"
+      :x="ctxX"
+      :y="ctxY"
+      :options="ctxOptions"
+      @select="onContextSelect"
+    />
   </div>
 </template>
 
@@ -340,6 +432,20 @@ watch(
   color: var(--text-dim);
 }
 
+.wrap-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  cursor: pointer;
+  flex: none;
+}
+
+.wrap-toggle-label {
+  font-size: 12px;
+  color: var(--text-muted);
+  white-space: nowrap;
+}
+
 .response-pre {
   width: 100%;
   height: 100%;
@@ -351,6 +457,11 @@ watch(
   color: var(--text-body);
   user-select: text;
   white-space: pre;
+}
+
+.response-pre--wrap {
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
 }
 
 .response-pre :deep(mark) {

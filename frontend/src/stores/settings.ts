@@ -6,6 +6,7 @@ import type { AppSettings, LLMSettings, ReasoningEffort } from '../types'
 export type ThemeMode = 'dark' | 'light'
 
 const THEME_STORAGE_KEY = 'httpRepeater.theme'
+const WORD_WRAP_STORAGE_KEY = 'httpRepeater.wordWrap'
 
 // 默认下游代理地址（Clash / mihomo 常见本地端口）
 export const DEFAULT_PROXY_URL = 'http://127.0.0.1:7890'
@@ -39,6 +40,24 @@ function writeStoredTheme(mode: ThemeMode) {
   }
 }
 
+function readStoredWordWrap(): boolean {
+  try {
+    const v = localStorage.getItem(WORD_WRAP_STORAGE_KEY)
+    if (v === '0' || v === 'false') return false
+    return true
+  } catch {
+    return true
+  }
+}
+
+function writeStoredWordWrap(enabled: boolean) {
+  try {
+    localStorage.setItem(WORD_WRAP_STORAGE_KEY, enabled ? '1' : '0')
+  } catch {
+    // ignore
+  }
+}
+
 function applyTheme(mode: ThemeMode) {
   document.body.dataset.theme = mode
 }
@@ -62,6 +81,7 @@ function normalizeEffort(value: unknown): ReasoningEffort {
 export const useSettingsStore = defineStore('settings', {
   state: () => ({
     theme: readStoredTheme(),
+    wordWrap: readStoredWordWrap(),
     language: lang.value,
     defaultProxyUrl: DEFAULT_PROXY_URL,
     llm: defaultLLM(),
@@ -150,6 +170,13 @@ export const useSettingsStore = defineStore('settings', {
     },
     toggleTheme() {
       void this.setTheme(this.theme === 'dark' ? 'light' : 'dark')
+    },
+    setWordWrap(enabled: boolean) {
+      this.wordWrap = !!enabled
+      writeStoredWordWrap(this.wordWrap)
+    },
+    toggleWordWrap() {
+      this.setWordWrap(!this.wordWrap)
     },
     // 设置页保存：本地立即生效，再写配置文件；失败时抛给调用方提示
     async saveAll(next: AppSettings): Promise<void> {

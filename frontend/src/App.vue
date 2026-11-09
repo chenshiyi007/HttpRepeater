@@ -16,7 +16,6 @@ import {
 import { MoonOutline, SunnyOutline, LogoGithub, SettingsOutline } from '@vicons/ionicons5'
 import RepeaterView from './views/RepeaterView.vue'
 import SettingsModal from './components/SettingsModal.vue'
-import AiChatModal from './components/AiChatModal.vue'
 import { DEFAULT_PROXY_URL, useSettingsStore } from './stores/settings'
 import { useTabsStore } from './stores/tabs'
 import { useUiStore } from './stores/ui'
@@ -134,7 +133,6 @@ function openGitHub() {
           </div>
         </div>
         <SettingsModal />
-        <AiChatModal />
       </n-message-provider>
     </n-dialog-provider>
   </n-config-provider>

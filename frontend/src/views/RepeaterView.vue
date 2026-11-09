@@ -5,6 +5,7 @@ import TabBar from '../components/TabBar.vue'
 import TargetBar from '../components/TargetBar.vue'
 import RequestPanel from '../components/RequestPanel.vue'
 import ResponsePanel from '../components/ResponsePanel.vue'
+import SideRail from '../components/side/SideRail.vue'
 import { useTabsStore } from '../stores/tabs'
 import { t } from '../i18n'
 
@@ -73,7 +74,10 @@ const lastSummary = computed(() => {
           <RequestPanel @send="doSend" />
         </template>
         <template #2>
-          <ResponsePanel />
+          <div class="response-rail">
+            <ResponsePanel />
+            <SideRail />
+          </div>
         </template>
       </n-split>
     </div>
@@ -116,6 +120,19 @@ const lastSummary = computed(() => {
 .repeater-body :deep(.n-split-pane-2) {
   min-width: 0;
   overflow: hidden;
+}
+
+.response-rail {
+  height: 100%;
+  display: flex;
+  flex-direction: row;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.response-rail > :first-child {
+  flex: 1;
+  min-width: 0;
 }
 
 .status-bar {

@@ -11,7 +11,7 @@ import { useSettingsStore, type ThemeMode } from '../stores/settings'
 const emit = defineEmits<{
   (e: 'send'): void
   (e: 'paste', text: string): void
-  (e: 'contextmenu', pos: { x: number; y: number }): void
+  (e: 'contextmenu', pos: { x: number; y: number; selection: string }): void
 }>()
 
 const store = useTabsStore()
@@ -20,8 +20,13 @@ const container = ref<HTMLDivElement | null>(null)
 let view: EditorView | null = null
 let syncingFromStore = false
 
-// 主题用 Compartment 承载，切换时只重配主题、不重建文档
+// 主题 / 换行用 Compartment 承载，切换时只重配扩展、不重建文档
 const themeCompartment = new Compartment()
+const wrapCompartment = new Compartment()
+
+function wrapExtension(enabled: boolean) {
+  return enabled ? EditorView.lineWrapping : []
+}
 
 function buildTheme() {
   return EditorView.theme({
@@ -59,6 +64,7 @@ function createState(doc: string): EditorState {
     extensions: [
       basicSetup, // 行号、历史、搜索（⌘F）等
       themeCompartment.of(themeExtension(settings.theme)),
+      wrapCompartment.of(wrapExtension(settings.wordWrap)),
       httpLanguage,
       keymap.of([
         {
@@ -89,7 +95,12 @@ function createState(doc: string): EditorState {
         },
         contextmenu: (event) => {
           event.preventDefault()
-          emit('contextmenu', { x: event.clientX, y: event.clientY })
+          const sel = view?.state.selection.main
+          const selection =
+            sel && sel.from !== sel.to && view
+              ? view.state.sliceDoc(sel.from, sel.to)
+              : ''
+          emit('contextmenu', { x: event.clientX, y: event.clientY, selection })
           return true
         },
       }),
@@ -141,6 +152,14 @@ watch(
   (mode) => {
     if (!view) return
     view.dispatch({ effects: themeCompartment.reconfigure(themeExtension(mode)) })
+  },
+)
+
+watch(
+  () => settings.wordWrap,
+  (enabled) => {
+    if (!view) return
+    view.dispatch({ effects: wrapCompartment.reconfigure(wrapExtension(enabled)) })
   },
 )
 </script>
