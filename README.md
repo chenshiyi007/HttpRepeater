@@ -414,28 +414,20 @@ The version badge in the header is injected at build time. `make build` and `mak
 from `git describe --tags --dirty`; when no tag is reachable it falls back to `dev+<commit>`, and
 when there is no git metadata at all the badge is hidden. `0.0.0` is never shown.
 
-To publish a GitHub release (requires a clean working tree, an `origin` remote and an authenticated
-[`gh`](https://cli.github.com/) CLI):
+**GitHub Releases** are built in CI (macOS universal + Windows amd64). After merging changes to
+`main`, bump `wails.json` `productVersion` and README download links if needed, then:
 
 ```bash
-gh auth login
-make notes VERSION=v0.2.0        # generate build/release/notes.md
-$EDITOR build/release/notes.md   # optional: edit the release notes
-make release VERSION=v0.2.0      # build, package, tag and publish
+git tag -a v1.2.0 -m "HttpRepeater v1.2.0"
+git push origin v1.2.0
 ```
 
-`make release` builds and packages the current platform, creates and pushes the `v0.2.0` tag, and
-publishes the archive with the notes. For additional platforms, build and package them first, then
-upload the resulting archives to the same release:
+The [Release workflow](.github/workflows/release.yml) runs on each `v*` tag, builds both platforms,
+generates notes via `scripts/release-notes.sh`, and publishes assets to
+[GitHub Releases](https://github.com/chenshiyi007/HttpRepeater/releases).
 
-```bash
-make build-release VERSION=v0.2.0 PLATFORM=windows/amd64
-make package-assets VERSION=v0.2.0 PLATFORM=windows/amd64
-make publish VERSION=v0.2.0
-```
-
-Use `PLATFORM=darwin/universal` for a universal macOS build. Linux packages must be built on Linux
-(or in a Linux container). Run `make help` for all targets.
+Local `make build` / `wails build` is only for testing on your machine; you do not need `gh` or
+`make release` on the developer box.
 
 ### Project layout
 
@@ -446,8 +438,9 @@ Use `PLATFORM=darwin/universal` for a universal macOS build. Linux packages must
 | `frontend/src/` | Vue 3 UI, components, Pinia stores, editor and i18n messages |
 | `build/` | App icons and platform packaging assets |
 | `assets/screenshots/` | Images used in the README |
-| `Makefile` | Build, packaging and GitHub release targets |
-| `scripts/` | Release notes and `wails.json` version helpers |
+| `Makefile` | Local `dev` / `build` / `test` helpers |
+| `.github/workflows/release.yml` | Tag-triggered macOS + Windows release builds |
+| `scripts/` | Release notes and `wails.json` version helpers (used by CI) |
 
 ## Star history
 

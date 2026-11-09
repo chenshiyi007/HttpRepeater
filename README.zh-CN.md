@@ -373,27 +373,19 @@ wails build
 顶栏的版本号在构建时注入。`make build` / `make dev` 会用 `git describe --tags --dirty` 取值；
 没有可用的 tag 时退化为 `dev+<commit>`；完全没有 git 信息时隐藏，不会显示 `0.0.0`。
 
-发布 GitHub Release（需要干净的工作区、已配置的 `origin` 远程，以及已登录的
-[`gh`](https://cli.github.com/) CLI）：
+**GitHub Release** 由 CI 自动构建（macOS 通用包 + Windows amd64）。合并到 `main` 后，按需改
+`wails.json` 的 `productVersion` 和 README 下载链接，然后：
 
 ```bash
-gh auth login
-make notes VERSION=v0.2.0        # 生成 build/release/notes.md
-$EDITOR build/release/notes.md   # 可选：手动修改更新说明
-make release VERSION=v0.2.0      # 构建、打包、打 tag 并发布
+git tag -a v1.2.0 -m "HttpRepeater v1.2.0"
+git push origin v1.2.0
 ```
 
-`make release` 会构建并打包当前平台，创建并推送 `v0.2.0` tag，然后用更新说明发布产物。
-其他平台可以先单独构建打包，再把产物上传到同一个 Release：
+推送 `v*` 标签会触发 [Release 工作流](.github/workflows/release.yml)：双平台打包、用
+`scripts/release-notes.sh` 生成说明、发布到
+[GitHub Releases](https://github.com/chenshiyi007/HttpRepeater/releases)。
 
-```bash
-make build-release VERSION=v0.2.0 PLATFORM=windows/amd64
-make package-assets VERSION=v0.2.0 PLATFORM=windows/amd64
-make publish VERSION=v0.2.0
-```
-
-macOS 通用包用 `PLATFORM=darwin/universal`；Linux 包需要在 Linux（或 Linux 容器）里构建。
-完整目标列表见 `make help`。
+本地只需 `make build` / `wails build` 做自测，不必安装 `gh`，也没有 `make release`。
 
 ### 项目结构
 
@@ -404,8 +396,9 @@ macOS 通用包用 `PLATFORM=darwin/universal`；Linux 包需要在 Linux（或 
 | `frontend/src/` | Vue 3 界面、组件、Pinia store、编辑器与 i18n 文案 |
 | `build/` | 应用图标与各平台打包资源 |
 | `assets/screenshots/` | README 使用的截图 |
-| `Makefile` | 构建、打包与 GitHub Release 目标 |
-| `scripts/` | Release notes 与 `wails.json` 版本辅助脚本 |
+| `Makefile` | 本地 `dev` / `build` / `test` |
+| `.github/workflows/release.yml` | 按 tag 构建 macOS + Windows 并发布 |
+| `scripts/` | Release 说明与 `wails.json` 版本脚本（CI 调用） |
 
 ## Star 趋势
 
