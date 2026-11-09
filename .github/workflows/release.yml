@@ -4,11 +4,6 @@ on:
   push:
     tags:
       - 'v*'
-  workflow_dispatch:
-    inputs:
-      version:
-        description: 'Semver (e.g. 1.2.0), only for manual runs without a tag'
-        required: true
 
 permissions:
   contents: write
@@ -48,11 +43,7 @@ jobs:
         id: ver
         shell: bash
         run: |
-          if [ "${{ github.ref_type }}" = tag ]; then
-            tag="${GITHUB_REF_NAME}"
-          else
-            tag="v${{ inputs.version }}"
-          fi
+          tag="${GITHUB_REF_NAME}"
           num="${tag#v}"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "num=$num" >> "$GITHUB_OUTPUT"
@@ -111,11 +102,7 @@ jobs:
         id: ver
         shell: bash
         run: |
-          if [ "${{ github.ref_type }}" = tag ]; then
-            tag="${GITHUB_REF_NAME}"
-          else
-            tag="v${{ inputs.version }}"
-          fi
+          tag="${GITHUB_REF_NAME}"
           num="${tag#v}"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "num=$num" >> "$GITHUB_OUTPUT"
